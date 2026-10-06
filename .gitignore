@@ -1,0 +1,32 @@
+# Secrets: real values live only in local env files
+.env
+.env.*
+!.env.example
+# Local file with database credentials
+/pass
+
+# Personal Claude Code settings
+.claude/settings.local.json
+
+# Dependencies
+/node_modules
+
+# Next.js build output
+/.next/
+/out/
+/build
+
+# Tests
+/coverage
+/test-results/
+/playwright-report/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
