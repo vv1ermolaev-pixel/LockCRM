@@ -14,7 +14,8 @@ export function AddContactButton() {
   return (
     <ContactFormDialog
       trigger={
-        <Button size="lg">
+        // Full width on phones, like the main button on the landing
+        <Button size="lg" className="w-full sm:w-auto">
           <PlusIcon />
           Добавить контакт
         </Button>
@@ -44,7 +45,7 @@ export function EditContactButton({
   return (
     <ContactFormDialog
       trigger={
-        <Button variant="outline">
+        <Button variant="secondary">
           <PencilIcon />
           Изменить
         </Button>

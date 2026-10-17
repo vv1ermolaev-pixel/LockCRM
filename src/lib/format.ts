@@ -32,15 +32,12 @@ export function initials(name: string) {
   return letters.join("").toUpperCase() || "?";
 }
 
+// Avatar colors from the landing palette
 const avatarColors = [
-  "bg-sky-100 text-sky-800",
-  "bg-emerald-100 text-emerald-800",
-  "bg-amber-100 text-amber-800",
-  "bg-rose-100 text-rose-800",
-  "bg-violet-100 text-violet-800",
-  "bg-teal-100 text-teal-800",
-  "bg-orange-100 text-orange-800",
-  "bg-indigo-100 text-indigo-800",
+  "bg-pistachio text-ink",
+  "bg-butter-avatar text-ink",
+  "bg-ink text-pistachio",
+  "bg-mid-green text-ink",
 ];
 
 // Stable color per name, so the same person always gets the same avatar

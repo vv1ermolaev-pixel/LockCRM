@@ -1,0 +1,82 @@
+/*
+ * Design tokens — the only place for colors, fonts, type sizes, radii and shadows.
+ * Palette, fonts and shapes come from the landing (personal-crm-landing/src/styles/tokens.css),
+ * so the app and the landing look like one product.
+ *
+ * `static`: shadcn/ui variables in globals.css and the toaster read these tokens at runtime,
+ * so they must exist even when no utility class uses them.
+ *
+ * A new font size or radius must also be added to src/lib/utils.ts,
+ * otherwise cn() takes it for a color and drops it when merging classes.
+ */
+@theme static {
+  /* Colors */
+  --color-pistachio: #cfeab9;
+  --color-pistachio-hover: #ddf1cc;
+  --color-ink: #0e1a0e;
+  --color-ink-hover: #1e321d;
+  --color-white: #ffffff;
+  --color-copy: #2b3d27;
+  --color-copy-muted: #4a5c45;
+  --color-butter: #f8edbf;
+  --color-butter-avatar: #f6e7a6;
+  --color-mint-50: #eff7e8;
+  --color-mint-100: #ddefcf;
+  --color-mint-line: #e3f1d8;
+  --color-sage-dot: #9db98c;
+  --color-mid-green: #6fb383;
+  --color-plate: rgb(255 255 255 / 0.5);
+  --color-rule: rgb(14 26 14 / 0.14);
+  --color-danger: #b3261e;
+
+  /* Type roles: base = phone, `-lg` = wider screens */
+  --text-title: 30px;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.03em;
+  --text-title-lg: 40px;
+  --text-title-lg--line-height: 1.1;
+  --text-title-lg--letter-spacing: -0.035em;
+
+  --text-name: 24px;
+  --text-name--line-height: 1.2;
+  --text-name--letter-spacing: -0.025em;
+  --text-name-lg: 30px;
+  --text-name-lg--line-height: 1.15;
+  --text-name-lg--letter-spacing: -0.03em;
+
+  --text-heading: 22px;
+  --text-heading--line-height: 1.2;
+  --text-heading--letter-spacing: -0.02em;
+  --text-heading-lg: 26px;
+  --text-heading-lg--line-height: 1.2;
+  --text-heading-lg--letter-spacing: -0.025em;
+
+  --text-lead: 17px;
+  --text-lead--line-height: 1.5;
+
+  --text-logo: 20px;
+  --text-logo--letter-spacing: -0.02em;
+  --text-logo-lg: 22px;
+  --text-logo-lg--letter-spacing: -0.02em;
+
+  --text-13: 13px;
+  --text-15: 15px;
+  --text-17: 17px;
+
+  --leading-note: 1.4;
+
+  /* Radii */
+  --radius-6: 6px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-18: 18px;
+  --radius-28: 28px;
+  --radius-32: 32px;
+
+  /* Shadows */
+  --shadow-card: 0 8px 30px rgb(14 26 14 / 0.08);
+  --shadow-card-lg: 0 20px 50px rgb(14 26 14 / 0.1);
+  --shadow-mock: 0 4px 14px rgb(14 26 14 / 0.06);
+}

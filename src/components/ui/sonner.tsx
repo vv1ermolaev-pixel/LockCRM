@@ -22,7 +22,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <TriangleAlertIcon className="size-4" />
         ),
         error: (
-          <OctagonXIcon className="size-4" />
+          <OctagonXIcon className="size-4 text-destructive" />
         ),
         loading: (
           <Loader2Icon className="size-4 animate-spin" />
@@ -33,12 +33,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          "--border-radius": "var(--radius-18)",
         } as React.CSSProperties
       }
+      // Sonner's own CSS is unlayered and beats Tailwind utilities, hence the `!` overrides
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast: "cn-toast font-sans text-15! shadow-card!",
+          title: "font-bold!",
+          actionButton: "h-8! rounded-10! px-3! text-sm! font-bold! text-pistachio!",
         },
       }}
       {...props}

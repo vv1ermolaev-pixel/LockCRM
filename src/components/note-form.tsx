@@ -34,7 +34,7 @@ export function NoteForm({ action }: { action: (formData: FormData) => Promise<N
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="grid gap-2">
+    <form ref={formRef} onSubmit={handleSubmit} className="grid gap-3">
       <label htmlFor="note-body" className="sr-only">
         Новая заметка
       </label>
@@ -42,7 +42,7 @@ export function NoteForm({ action }: { action: (formData: FormData) => Promise<N
         id="note-body"
         name="body"
         placeholder="О чём поговорили, о чём договорились…"
-        className="min-h-24 bg-background"
+        className="min-h-24"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? "note-body-error" : undefined}
         onKeyDown={(event) => {
@@ -58,7 +58,7 @@ export function NoteForm({ action }: { action: (formData: FormData) => Promise<N
         </p>
       )}
       <div className="flex items-center justify-between gap-3">
-        <p className="hidden text-xs text-muted-foreground sm:block">Ctrl + Enter — сохранить</p>
+        <p className="hidden text-13 text-muted-foreground sm:block">Ctrl + Enter — сохранить</p>
         <Button type="submit" disabled={isPending} className="ml-auto">
           {isPending && <Loader2Icon className="animate-spin" />}
           Добавить заметку

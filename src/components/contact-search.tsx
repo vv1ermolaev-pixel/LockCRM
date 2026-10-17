@@ -52,7 +52,7 @@ export function ContactSearch() {
 
   return (
     <div className="relative">
-      <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <SearchIcon className="pointer-events-none absolute top-1/2 left-4.5 size-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
       <Input
         type="search"
         aria-label="Поиск по имени"
@@ -66,11 +66,11 @@ export function ContactSearch() {
             clear();
           }
         }}
-        className="h-10 bg-background pr-10 pl-9 [&::-webkit-search-cancel-button]:hidden"
+        className="h-13 bg-card pr-12 pl-12 text-17 font-semibold shadow-mock placeholder:font-medium [&::-webkit-search-cancel-button]:hidden"
       />
-      <div className="absolute top-1/2 right-1.5 -translate-y-1/2">
+      <div className="absolute top-1/2 right-2 -translate-y-1/2">
         {isPending ? (
-          <Loader2Icon className="mr-1.5 size-4 animate-spin text-muted-foreground" aria-label="Ищем…" />
+          <Loader2Icon className="mr-2.5 size-4.5 animate-spin text-muted-foreground" aria-label="Ищем…" />
         ) : (
           value && (
             <Button variant="ghost" size="icon-sm" onClick={clear} aria-label="Очистить поиск">

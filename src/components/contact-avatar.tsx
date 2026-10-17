@@ -6,7 +6,7 @@ export function ContactAvatar({ name, className }: { name: string; className?: s
     <span
       aria-hidden
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+        "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold",
         avatarColor(name),
         className,
       )}

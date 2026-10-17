@@ -79,7 +79,7 @@ export function ContactFormDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form id="contact-form" noValidate onSubmit={handleSubmit} className="grid gap-4">
+        <form id="contact-form" noValidate onSubmit={handleSubmit} className="grid gap-4.5">
           <Field
             name="name"
             label="Имя"
@@ -105,7 +105,7 @@ export function ContactFormDialog({
             defaultValue={defaultValues.howWeMet}
             error={errors.howWeMet}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4.5 sm:grid-cols-2">
             <Field
               name="phone"
               label="Телефон"
@@ -163,13 +163,13 @@ function Field({ name, label, error, multiline, required, defaultValue, ...input
   };
 
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-2">
       <Label htmlFor={id}>
         {label}
         {required && <span className="text-destructive">*</span>}
       </Label>
       {multiline ? (
-        <Textarea {...shared} placeholder={inputProps.placeholder} className="min-h-16" />
+        <Textarea {...shared} placeholder={inputProps.placeholder} className="min-h-20" />
       ) : (
         <Input {...shared} {...inputProps} required={required} />
       )}

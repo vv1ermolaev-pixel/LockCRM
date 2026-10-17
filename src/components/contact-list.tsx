@@ -20,7 +20,7 @@ export function ContactList({ contacts, addedId }: { contacts: ContactListItem[]
   }, [addedId]);
 
   return (
-    <ul className="divide-y overflow-hidden rounded-xl border bg-background">
+    <ul className="divide-y overflow-hidden rounded-28 bg-card shadow-card">
       {contacts.map((contact) => {
         const isNew = contact.id === addedId;
         return (
@@ -28,15 +28,15 @@ export function ContactList({ contacts, addedId }: { contacts: ContactListItem[]
             <Link
               href={`/contacts/${contact.id}`}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none",
-                isNew && "bg-amber-50 hover:bg-amber-100/70",
+                "flex items-center gap-3.5 px-4 py-3.5 transition-colors duration-150 hover:bg-muted focus-visible:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:px-5",
+                isNew && "bg-butter hover:bg-butter",
               )}
             >
               <ContactAvatar name={contact.name} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate font-medium">{contact.name}</span>
-                  {isNew && <Badge className="bg-amber-500 text-white">Новый</Badge>}
+                  <span className="truncate font-bold">{contact.name}</span>
+                  {isNew && <Badge>Новый</Badge>}
                 </div>
                 {contact.about && <p className="truncate text-sm text-muted-foreground">{contact.about}</p>}
               </div>
@@ -44,7 +44,7 @@ export function ContactList({ contacts, addedId }: { contacts: ContactListItem[]
                 {contact.phone && <div className="tabular-nums">{contact.phone}</div>}
                 {contact.email && <div className="max-w-56 truncate">{contact.email}</div>}
               </div>
-              <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+              <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" />
             </Link>
           </li>
         );

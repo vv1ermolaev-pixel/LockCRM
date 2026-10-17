@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { TriangleAlertIcon } from "lucide-react";
 
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 
 export default function ErrorPage({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
@@ -11,16 +12,17 @@ export default function ErrorPage({ error, retry }: { error: Error & { digest?: 
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-background px-6 py-14 text-center">
-      <TriangleAlertIcon className="size-8 text-destructive" />
-      <p className="font-medium">Не удалось загрузить данные</p>
-      <p className="max-w-md text-sm text-muted-foreground">
-        Скорее всего, не запущена база данных. Запустите Docker Desktop и выполните в папке проекта{" "}
-        <code className="rounded bg-muted px-1 py-0.5">docker compose up -d</code>, затем попробуйте снова.
-      </p>
-      <Button onClick={() => retry()} className="mt-2">
-        Попробовать снова
-      </Button>
-    </div>
+    <EmptyState
+      icon={<TriangleAlertIcon className="text-destructive" />}
+      title="Не удалось загрузить данные"
+      text={
+        <>
+          Скорее всего, не запущена база данных. Запустите Docker Desktop и выполните в папке проекта{" "}
+          <code className="rounded-6 bg-card px-1.5 py-0.5 font-mono text-sm">docker compose up -d</code>, затем
+          попробуйте снова.
+        </>
+      }
+      action={<Button onClick={() => retry()}>Попробовать снова</Button>}
+    />
   );
 }

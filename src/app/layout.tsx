@@ -1,41 +1,43 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope, Unbounded } from "next/font/google";
 import Link from "next/link";
-import { BookUserIcon } from "lucide-react";
 
+import { Logo } from "@/components/logo";
 import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-sans",
+// Same fonts as the landing: Manrope for text, Unbounded for headings
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin", "cyrillic"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
   subsets: ["latin", "cyrillic"],
 });
 
 export const metadata: Metadata = {
-  title: "LockCRM — мои контакты",
+  title: "Tribe — мои контакты",
   description: "Личная CRM: люди, которых я знаю, и о чём мы договорились",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-muted/40">
-        <header className="border-b bg-background">
-          <div className="mx-auto flex h-14 w-full max-w-3xl items-center px-4">
-            <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-              <BookUserIcon className="size-5 text-primary" />
-              LockCRM
-            </Link>
-          </div>
+    <html lang="ru" className={`${manrope.variable} ${unbounded.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col">
+        <header className="mx-auto flex h-17 w-full max-w-3xl items-center justify-center px-4 sm:h-22">
+          <Link
+            href="/"
+            aria-label="Tribe — все контакты"
+            className="rounded-12 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          >
+            <Logo />
+          </Link>
         </header>
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-8">{children}</main>
-        <Toaster theme="light" position="bottom-right" richColors closeButton />
+        <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 sm:pb-16">{children}</main>
+        <Toaster theme="light" position="bottom-right" closeButton />
       </body>
     </html>
   );

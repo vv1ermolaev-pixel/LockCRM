@@ -3,6 +3,8 @@ import { SearchXIcon, UsersIcon } from "lucide-react";
 import { AddContactButton } from "@/components/contact-buttons";
 import { ContactList } from "@/components/contact-list";
 import { ContactSearch } from "@/components/contact-search";
+import { EmptyState } from "@/components/empty-state";
+import { Highlight } from "@/components/highlight";
 import { countContacts, listContacts } from "@/lib/contacts";
 import { formatNumber, pluralize } from "@/lib/format";
 
@@ -20,11 +22,13 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
   const [contacts, total] = await Promise.all([listContacts(query), countContacts()]);
 
   return (
-    <div className="grid gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Контакты</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-5">
+        <div className="grid gap-3">
+          <h1 className="font-display text-title font-semibold sm:text-title-lg">
+            <Highlight className="rounded-12 px-2.5 sm:rounded-16 sm:px-3.5">Контакты</Highlight>
+          </h1>
+          <p className="text-lead text-copy">
             {query
               ? `Найдено: ${formatNumber(contacts.length)} из ${formatNumber(total)}`
               : total > 0
@@ -52,16 +56,6 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
           text="Нажмите «Добавить контакт», чтобы записать первого человека."
         />
       )}
-    </div>
-  );
-}
-
-function EmptyState({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-background px-6 py-14 text-center">
-      <div className="mb-1 text-muted-foreground [&_svg]:size-8">{icon}</div>
-      <p className="font-medium">{title}</p>
-      <p className="text-sm text-muted-foreground">{text}</p>
     </div>
   );
 }
