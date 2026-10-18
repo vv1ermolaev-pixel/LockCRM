@@ -1,0 +1,25 @@
+# Files that never go into the image build context
+
+# Secrets
+.env
+.env.*
+!.env.example
+/pass
+*.pem
+
+# Dependencies and build output: the image installs and builds its own
+node_modules
+.next
+dist-scripts
+*.tsbuildinfo
+
+# Not needed to build or run the app
+.git
+.github
+.claude
+deploy
+e2e
+coverage
+test-results
+playwright-report
+*.md
