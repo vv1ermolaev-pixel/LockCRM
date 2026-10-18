@@ -24,13 +24,16 @@ read -r REGISTRY_USER REGISTRY_TOKEN || fail "registry user and token are expect
   DOCKER_CONFIG="$(mktemp -d)"
   export DOCKER_CONFIG
   trap 'rm -rf "$DOCKER_CONFIG"' EXIT
-  printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin >/dev/null
+  # Docker warns that this temporary config stores the token unencrypted; it is deleted right after
+  if ! output="$(printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin 2>&1)"; then
+    fail "registry login failed: $output"
+  fi
   docker pull --quiet "$IMAGE"
 )
 unset REGISTRY_TOKEN
 
 log "Starting database"
-compose up --detach --wait db
+compose up --detach --wait --quiet-pull db
 
 log "Running migrations"
 # If migrations fail, set -e stops here: the new app version does not start
