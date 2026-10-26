@@ -71,7 +71,7 @@ test("main scenario works end to end", async ({ page }) => {
   });
 
   await test.step("find the contact by name and open the card", async () => {
-    const search = page.getByRole("searchbox", { name: "Поиск по имени" });
+    const search = page.getByRole("searchbox", { name: "Поиск по контактам" });
     // Different case and word order on purpose
     await search.fill(`ПРОВЕРКИНА-${suffix} василиса`);
     await expect(page).toHaveURL(/\?q=/);
@@ -114,7 +114,7 @@ test("main scenario works end to end", async ({ page }) => {
       await otherPage.goto("/");
       await expect(contactRows(otherPage)).toHaveCount(await countContactsInDb());
 
-      await otherPage.getByRole("searchbox", { name: "Поиск по имени" }).fill(contactName);
+      await otherPage.getByRole("searchbox", { name: "Поиск по контактам" }).fill(contactName);
       await expect(contactRows(otherPage)).toHaveCount(1);
       await contactRows(otherPage).getByRole("link").click();
 
