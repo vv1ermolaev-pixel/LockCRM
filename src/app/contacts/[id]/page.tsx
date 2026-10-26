@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon, NotebookPenIcon } from "lucide-react";
 
-import { addNote, updateContact } from "@/app/actions";
+import { addNote, deleteContact, updateContact } from "@/app/actions";
 import { ContactAvatar } from "@/components/contact-avatar";
-import { EditContactButton } from "@/components/contact-buttons";
+import { DeleteContactButton, EditContactButton } from "@/components/contact-buttons";
 import { Highlight } from "@/components/highlight";
 import { NoteForm } from "@/components/note-form";
 import { Button } from "@/components/ui/button";
@@ -33,21 +33,28 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
       <section className="rounded-28 bg-card p-5 shadow-card sm:rounded-32 sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <ContactAvatar name={contact.name} className="size-16 text-xl" />
-          {/* basis-52 lets the edit button wrap to its own line on narrow screens instead of squeezing the name */}
+          {/* basis-52 lets the buttons wrap to their own line on narrow screens instead of squeezing the name */}
           <div className="min-w-0 flex-1 basis-52 self-center">
             <h1 className="font-display text-name font-semibold break-words sm:text-name-lg">{contact.name}</h1>
             {contact.about && <p className="mt-1.5 text-lead text-copy">{contact.about}</p>}
           </div>
-          <EditContactButton
-            contact={{
-              name: contact.name,
-              about: contact.about,
-              howWeMet: contact.howWeMet,
-              phone: contact.phone,
-              email: contact.email,
-            }}
-            action={updateContact.bind(null, contact.id)}
-          />
+          <div className="flex gap-2">
+            <EditContactButton
+              contact={{
+                name: contact.name,
+                about: contact.about,
+                howWeMet: contact.howWeMet,
+                phone: contact.phone,
+                email: contact.email,
+              }}
+              action={updateContact.bind(null, contact.id)}
+            />
+            <DeleteContactButton
+              name={contact.name}
+              notesCount={notes.length}
+              action={deleteContact.bind(null, contact.id)}
+            />
+          </div>
         </div>
 
         <dl className="mt-6 grid gap-x-6 gap-y-4 rounded-18 bg-muted p-4 sm:grid-cols-2 sm:p-5">
