@@ -42,12 +42,12 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
       {total > 0 && <ContactSearch />}
 
       {contacts.length > 0 ? (
-        <ContactList contacts={contacts} addedId={addedId} />
+        <ContactList contacts={contacts} addedId={addedId} query={query} />
       ) : query ? (
         <EmptyState
           icon={<SearchXIcon />}
           title={`Никого не нашли по запросу «${query}»`}
-          text="Проверьте написание или поищите по фамилии."
+          text="Проверьте написание или поищите иначе: по телефону, почте или слову из заметки."
         />
       ) : (
         <EmptyState
