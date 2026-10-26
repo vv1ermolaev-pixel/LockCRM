@@ -59,6 +59,18 @@ export async function updateContact(id: number, formData: FormData): Promise<Con
   return { ok: true, id: updated.id, name: updated.name };
 }
 
+export async function deleteContact(id: number): Promise<{ ok: true }> {
+  assertValidId(id);
+  // Notes go with the contact (on delete cascade). A contact that is already gone is not an error:
+  // it may have been deleted in another browser, and the result is the same
+  await db.delete(contacts).where(eq(contacts.id, id));
+
+  // No revalidatePath on purpose: it re-renders the current page, which is the card of the contact
+  // that no longer exists, so "not found" would flash before the client goes to the list.
+  // The list reads the database on every visit, so it is fresh after that navigation anyway.
+  return { ok: true };
+}
+
 export async function addNote(contactId: number, formData: FormData): Promise<NoteActionResult> {
   assertValidId(contactId);
   const parsed = noteSchema.safeParse({ body: formData.get("body") ?? "" });

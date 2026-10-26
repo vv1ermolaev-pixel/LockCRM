@@ -9,7 +9,7 @@ export default function ContactNotFound() {
     <EmptyState
       icon={<UserXIcon />}
       title="Такого контакта нет"
-      text="Возможно, ссылка неверная."
+      text="Возможно, ссылка неверная или контакт удалён."
       action={
         <Button asChild>
           <Link href="/">Ко всем контактам</Link>
