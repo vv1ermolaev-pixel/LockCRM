@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компьютер — изменить контакт, выбор частоты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0e1a0e;text-decoration:none}a:hover{color:#1e321d}
+</style>
+</helmet>
+<div style="position: relative; width: 100%; min-height: 960px; box-sizing: border-box; background: #cfeab9; color: #0e1a0e; font-family: Manrope, system-ui, sans-serif; font-weight: 500; font-size: 16px; line-height: 1.5; display: flex; justify-content: center; padding: 72px 16px">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgb(14 26 14 / 0.4)"></div>
+
+  <div role="dialog" aria-modal="true" aria-labelledby="dlg-title-d" style="position: relative; width: 100%; max-width: 512px; align-self: flex-start; box-sizing: border-box; background: #ffffff; border-radius: 28px; box-shadow: 0 20px 50px rgb(14 26 14 / 0.1); padding: 28px; display: flex; flex-direction: column; gap: 22px">
+    <button type="button" aria-label="Закрыть" style="position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: transparent; color: #4a5c45; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+    </button>
+    <div style="display: flex; flex-direction: column; gap: 6px; padding-right: 40px">
+      <h2 id="dlg-title-d" style="margin: 0; font-family: Unbounded, sans-serif; font-weight: 600; font-size: 22px; line-height: 1.25; letter-spacing: -0.02em">Изменить контакт</h2>
+      <p style="margin: 0; font-size: 15px; color: #4a5c45">Поправьте данные и сохраните.</p>
+    </div>
+
+    <form style="margin: 0; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="d-name" style="font-size: 14px; font-weight: 700">Имя<span style="color: #b3261e">*</span></label>
+        <input id="d-name" type="text" value="Анна Смирнова" style="height: 44px; box-sizing: border-box; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; padding: 0 14px; font-family: Manrope, sans-serif; font-weight: 500; font-size: 16px; color: #0e1a0e; background: #ffffff">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="d-about" style="font-size: 14px; font-weight: 700">Кто это</label>
+        <input id="d-about" type="text" value="Дизайнер, бывшая коллега" style="height: 44px; box-sizing: border-box; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; padding: 0 14px; font-family: Manrope, sans-serif; font-weight: 500; font-size: 16px; color: #0e1a0e; background: #ffffff">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="d-met" style="font-size: 14px; font-weight: 700">Откуда знакомы</label>
+        <textarea id="d-met" style="min-height: 80px; box-sizing: border-box; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; padding: 10px 14px; font-family: Manrope, sans-serif; font-weight: 500; font-size: 16px; color: #0e1a0e; resize: vertical">Работали вместе в студии «Квадрат» в 2021</textarea>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="d-phone" style="font-size: 14px; font-weight: 700">Телефон</label>
+          <input id="d-phone" type="tel" value="+7 900 123-45-67" style="height: 44px; box-sizing: border-box; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; padding: 0 14px; font-family: Manrope, sans-serif; font-weight: 500; font-size: 16px; color: #0e1a0e; background: #ffffff">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="d-email" style="font-size: 14px; font-weight: 700">Почта</label>
+          <input id="d-email" type="email" value="anna@example.ru" style="height: 44px; box-sizing: border-box; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; padding: 0 14px; font-family: Manrope, sans-serif; font-weight: 500; font-size: 16px; color: #0e1a0e; background: #ffffff">
+        </div>
+      </div>
+
+      <div style="position: relative; display: flex; flex-direction: column; gap: 8px">
+        <label id="d-freq-label" for="d-freq" style="font-size: 14px; font-weight: 700">Как часто общаться</label>
+        <button id="d-freq" type="button" aria-haspopup="listbox" aria-expanded="true" aria-labelledby="d-freq-label d-freq" style="height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box; border: 2px solid #0e1a0e; border-radius: 14px; padding: 0 13px; background: #ffffff; font-family: Manrope, sans-serif; font-weight: 500; font-size: 16px; color: #0e1a0e; cursor: pointer; text-align: left">
+          <span>Раз в месяц</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg>
+        </button>
+        <ul role="listbox" aria-labelledby="d-freq-label" style="position: absolute; left: 0; right: 0; top: 82px; z-index: 2; list-style: none; margin: 0; padding: 6px; background: #ffffff; border: 1px solid #e3f1d8; border-radius: 14px; box-shadow: 0 20px 50px rgb(14 26 14 / 0.16)">
+          <li role="option" aria-selected="false" style="height: 40px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px">Не задано</li>
+          <li role="option" aria-selected="false" style="height: 40px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px">Раз в неделю</li>
+          <li role="option" aria-selected="true" style="height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: 10px; background: #eff7e8; font-weight: 700">
+            Раз в месяц
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e1a0e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+          </li>
+          <li role="option" aria-selected="false" style="height: 40px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px">Раз в квартал</li>
+          <li role="option" aria-selected="false" style="height: 40px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px">Раз в год</li>
+        </ul>
+      </div>
+    </form>
+
+    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px">
+      <button type="button" style="height: 44px; padding: 0 20px; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; background: transparent; color: #0e1a0e; font-family: Manrope, sans-serif; font-weight: 700; font-size: 15px; cursor: pointer">Отмена</button>
+      <button type="button" style="height: 44px; padding: 0 20px; border: 0; border-radius: 14px; background: #0e1a0e; color: #cfeab9; font-family: Manrope, sans-serif; font-weight: 700; font-size: 15px; cursor: pointer">Сохранить</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

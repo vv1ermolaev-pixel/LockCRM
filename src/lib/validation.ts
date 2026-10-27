@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { contactFrequencies, noContactFrequency } from "@/lib/contact-frequency";
+
 // Empty optional fields are stored as NULL
 const optionalText = (max: number, tooLongMessage: string) =>
   z
@@ -20,6 +22,10 @@ export const contactSchema = z.object({
     (value) => value === null || z.email().safeParse(value).success,
     "Похоже, в адресе почты ошибка",
   ),
+  contactFrequency: z
+    .string()
+    .transform((value) => (value === noContactFrequency || value === "" ? null : value))
+    .pipe(z.enum(contactFrequencies, { error: "Выберите частоту из списка" }).nullable()),
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;
@@ -30,6 +36,9 @@ export const noteSchema = z.object({
   body: z.string().trim().min(1, "Заметка пустая").max(10_000, "Заметка слишком длинная — до 10 000 символов"),
 });
 
+// The previous "Связались" mark that "Отменить" puts back: an ISO date, or null when there was none
+export const previousMarkSchema = z.iso.datetime().nullable();
+
 export function readContactForm(formData: FormData) {
   return contactSchema.safeParse({
     name: formData.get("name") ?? "",
@@ -37,6 +46,7 @@ export function readContactForm(formData: FormData) {
     howWeMet: formData.get("howWeMet") ?? "",
     phone: formData.get("phone") ?? "",
     email: formData.get("email") ?? "",
+    contactFrequency: formData.get("contactFrequency") ?? "",
   });
 }
 

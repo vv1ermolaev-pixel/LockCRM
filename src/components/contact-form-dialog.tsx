@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { contactFrequencies, contactFrequencyLabels, noContactFrequency } from "@/lib/contact-frequency";
 import type { ContactField, ContactFieldErrors } from "@/lib/validation";
 
 export type ContactFormValues = Partial<Record<ContactField, string | null>>;
@@ -126,6 +128,7 @@ export function ContactFormDialog({
               error={errors.email}
             />
           </div>
+          <FrequencyField defaultValue={defaultValues.contactFrequency} error={errors.contactFrequency} />
         </form>
         <DialogFooter>
           <DialogClose asChild>
@@ -140,6 +143,40 @@ export function ContactFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function FrequencyField({ defaultValue, error }: { defaultValue?: string | null; error?: string }) {
+  const id = "contact-contactFrequency";
+  const errorId = `${id}-error`;
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>Как часто общаться</Label>
+      {/* With `name`, Radix Select adds a hidden <select>, so the value goes into FormData like other fields */}
+      <Select name="contactFrequency" defaultValue={defaultValue ?? noContactFrequency}>
+        <SelectTrigger
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={noContactFrequency}>Не задано</SelectItem>
+          {contactFrequencies.map((frequency) => (
+            <SelectItem key={frequency} value={frequency}>
+              {contactFrequencyLabels[frequency]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && (
+        <p id={errorId} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

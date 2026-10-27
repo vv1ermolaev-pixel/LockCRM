@@ -1,22 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, NotebookPenIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarIcon, ClockIcon, NotebookPenIcon } from "lucide-react";
 
 import { addNote, deleteContact, updateContact } from "@/app/actions";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { DeleteContactButton, EditContactButton } from "@/components/contact-buttons";
 import { Highlight } from "@/components/highlight";
+import { MarkContactedButton } from "@/components/mark-contacted-button";
 import { NoteForm } from "@/components/note-form";
 import { Button } from "@/components/ui/button";
+import { contactFrequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
-import { formatDateTime, pluralize } from "@/lib/format";
+import { formatCalendarDay, formatDateTime, formatOverdue, pluralize } from "@/lib/format";
+import { getKeepInTouchStatus, type KeepInTouchStatus } from "@/lib/keep-in-touch";
 import { cn } from "@/lib/utils";
 
 export default async function ContactPage({ params }: PageProps<"/contacts/[id]">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
 
-  const [contact, notes] = await Promise.all([getContact(id), listNotes(id)]);
+  const [contact, notes, keepInTouch] = await Promise.all([getContact(id), listNotes(id), getKeepInTouchStatus(id)]);
   if (!contact) notFound();
 
   return (
@@ -46,6 +49,7 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
                 howWeMet: contact.howWeMet,
                 phone: contact.phone,
                 email: contact.email,
+                contactFrequency: contact.contactFrequency,
               }}
               action={updateContact.bind(null, contact.id)}
             />
@@ -73,6 +77,15 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
               <a href={`mailto:${contact.email}`} className="break-all hover:underline">
                 {contact.email}
               </a>
+            )}
+          </Detail>
+          <Detail label="Как часто общаться" className="sm:col-span-2">
+            {contact.contactFrequency && (
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
+                <span>{contactFrequencyLabels[contact.contactFrequency]}</span>
+                {keepInTouch && <DueLine status={keepInTouch} />}
+                <MarkContactedButton contactId={contact.id} />
+              </div>
             )}
           </Detail>
         </dl>
@@ -140,6 +153,23 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
         </div>
       </section>
     </div>
+  );
+}
+
+function DueLine({ status }: { status: KeepInTouchStatus }) {
+  if (status.overdueDays > 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-10 bg-butter px-2.5 py-1 text-sm font-bold">
+        <ClockIcon className="size-4 shrink-0" aria-hidden />
+        Пора связаться — {formatOverdue(status.overdueDays)}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-copy">
+      <CalendarIcon className="size-4 shrink-0" aria-hidden />
+      Следующий раз — до {formatCalendarDay(status.dueDate, status.today)}
+    </span>
   );
 }
 

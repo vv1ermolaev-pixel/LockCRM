@@ -15,8 +15,25 @@ export function pluralize(value: number, forms: [string, string, string]) {
   return `${numberFormat.format(value)} ${word}`;
 }
 
+export const contactForms: [string, string, string] = ["контакт", "контакта", "контактов"];
+
 export function formatNumber(value: number) {
   return numberFormat.format(value);
+}
+
+const dayMonthFormat = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+
+// "просрочено на 5 дней"
+export function formatOverdue(days: number) {
+  return `просрочено на ${pluralize(days, ["день", "дня", "дней"])}`;
+}
+
+// A calendar day as "YYYY-MM-DD" (see getKeepInTouchStatus) -> "26 ноября"; the year only when it is not the current one.
+// The string is read as a UTC date and formatted in UTC, so the time zone of the server cannot move the day
+export function formatCalendarDay(day: string, today: string) {
+  const text = dayMonthFormat.format(new Date(`${day}T00:00:00Z`));
+  const year = day.slice(0, 4);
+  return year === today.slice(0, 4) ? text : `${text} ${year}`;
 }
 
 export function formatDateTime(date: Date) {

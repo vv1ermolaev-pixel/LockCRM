@@ -1,4 +1,9 @@
-import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+// Relative import: drizzle-kit and scripts/seed.ts do not know the "@/" alias
+import { contactFrequencies } from "../lib/contact-frequency";
+
+export const contactFrequencyEnum = pgEnum("contact_frequency", contactFrequencies);
 
 export const contacts = pgTable(
   "contacts",
@@ -10,6 +15,11 @@ export const contacts = pgTable(
     howWeMet: text("how_we_met"),
     phone: text("phone"),
     email: text("email"),
+    // How often to stay in touch; NULL means "not set"
+    contactFrequency: contactFrequencyEnum("contact_frequency"),
+    // When the "Contacted" (Связались) button was last pressed. Only the mark and undo actions write it:
+    // editing a contact is not communication
+    contactMarkedAt: timestamp("contact_marked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
