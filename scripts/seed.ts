@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { contacts, notes } from "../src/db/schema";
+import { contactFrequencies } from "../src/lib/contact-frequency";
 
 const CONTACT_COUNT = Number(process.argv[2] ?? 1000);
 const BATCH_SIZE = 200;
@@ -24,6 +25,9 @@ function createRandom(seed: number) {
 }
 
 const random = createRandom(20261006);
+// Frequencies have their own generator: drawing from `random` would shift every value generated after it,
+// and the contacts, notes and dates of an existing seed would come out different
+const frequencyRandom = createRandom(20261027);
 const chance = (probability: number) => random() < probability;
 const randomInt = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
 const pick = <T>(items: readonly T[]) => items[Math.floor(random() * items.length)];
@@ -259,6 +263,15 @@ type SeedContact = {
   notes: Array<{ body: string; createdAt: Date }>;
 };
 
+// About a third of the contacts get a frequency, so "Пора связаться" has something to show.
+// Two draws every time, whatever the result, so each contact's value does not depend on the previous ones.
+// "contact_marked_at" stays empty: nobody has pressed "Связались" yet
+function makeFrequency() {
+  const hasFrequency = frequencyRandom() < 1 / 3;
+  const kind = frequencyRandom();
+  return hasFrequency ? contactFrequencies[Math.floor(kind * contactFrequencies.length)] : null;
+}
+
 function makeContact(): SeedContact {
   const gender: Gender = chance(0.5) ? "m" : "f";
   const firstName = pick(gender === "m" ? maleNames : femaleNames);
@@ -279,6 +292,7 @@ function makeContact(): SeedContact {
       howWeMet: chance(0.85) ? byGender(pick(howWeMetOptions), gender) : null,
       phone: chance(0.9) ? makePhone() : null,
       email: chance(0.75) ? makeEmail(firstName, surname) : null,
+      contactFrequency: makeFrequency(),
       createdAt,
       updatedAt: contactNotes.at(-1)?.createdAt ?? createdAt,
     },

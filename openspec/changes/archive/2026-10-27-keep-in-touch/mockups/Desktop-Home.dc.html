@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компьютер — главная с блоком «Пора связаться»</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0e1a0e;text-decoration:none}a:hover{color:#1e321d}
+@media (max-width: 640px){.contact-side{display:none !important}}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1180px; box-sizing: border-box; background: #cfeab9; color: #0e1a0e; font-family: Manrope, system-ui, sans-serif; font-weight: 500; font-size: 16px; line-height: 1.5">
+  <header style="height: 88px; display: flex; align-items: center; justify-content: center">
+    <a href="#" aria-label="Tribe — все контакты" style="display: flex; align-items: center; gap: 12px">
+      <span aria-hidden="true" style="display: flex">
+        <span style="width: 16px; height: 16px; border-radius: 50%; background: #0e1a0e"></span>
+        <span style="width: 16px; height: 16px; border-radius: 50%; background: #6fb383; margin-left: -5px"></span>
+        <span style="width: 16px; height: 16px; border-radius: 50%; background: #ffffff; margin-left: -5px"></span>
+      </span>
+      <span style="font-family: Unbounded, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.02em">Tribe</span>
+    </a>
+  </header>
+
+  <main style="max-width: 768px; margin: 0 auto; padding: 0 16px 64px; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 16px">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-weight: 600; font-size: 40px; line-height: 1.25; letter-spacing: -0.035em"><span style="background: #ffffff; border-radius: 16px; padding: 0 14px">Контакты</span></h1>
+        <p style="margin: 0; font-size: 17px; color: #2b3d27">1 000 контактов</p>
+      </div>
+      <button type="button" style="height: 52px; display: inline-flex; align-items: center; gap: 10px; padding: 0 24px 0 20px; border: 0; border-radius: 18px; background: #0e1a0e; color: #cfeab9; font-family: Manrope, sans-serif; font-weight: 700; font-size: 17px; cursor: pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+        Добавить контакт
+      </button>
+    </div>
+
+    <sc-if value="{{showDue}}" hint-placeholder-val="{{ true }}">
+      <section aria-labelledby="due-title-d" style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <h2 id="due-title-d" style="margin: 0; font-family: Unbounded, sans-serif; font-weight: 600; font-size: 26px; line-height: 1.35; letter-spacing: -0.025em"><span style="background: #ffffff; border-radius: 12px; padding: 0 10px">Пора связаться</span></h2>
+          <span style="font-size: 15px; font-weight: 700; color: #2b3d27">4 контакта</span>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; background: #ffffff; border-radius: 28px; box-shadow: 0 8px 30px rgb(14 26 14 / 0.08); overflow: hidden">
+          <li style="display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; min-height: 76px; box-sizing: border-box">
+            <a href="#" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px">
+              <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #f6e7a6; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">МК</span>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <span style="font-weight: 700">Мария Кузнецова</span>
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 14px; color: #4a5c45">Раз в год · <span style="background: #f8edbf; color: #0e1a0e; border-radius: 6px; padding: 1px 7px; font-size: 13px; font-weight: 700">просрочено на 35 дней</span></span>
+              </span>
+            </a>
+            <button type="button" aria-label="Связались: Мария Кузнецова" title="Связались" style="width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 14px; background: #cfeab9; color: #0e1a0e; cursor: pointer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+          </li>
+          <li style="display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; min-height: 76px; box-sizing: border-box; border-top: 1px solid #e3f1d8">
+            <a href="#" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px">
+              <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #0e1a0e; color: #cfeab9; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">БО</span>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <span style="font-weight: 700">Борис Орлов</span>
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 14px; color: #4a5c45">Раз в квартал · <span style="background: #f8edbf; color: #0e1a0e; border-radius: 6px; padding: 1px 7px; font-size: 13px; font-weight: 700">просрочено на 20 дней</span></span>
+              </span>
+            </a>
+            <button type="button" aria-label="Связались: Борис Орлов" title="Связались" style="width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 14px; background: #cfeab9; color: #0e1a0e; cursor: pointer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+          </li>
+          <li style="display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; min-height: 76px; box-sizing: border-box; border-top: 1px solid #e3f1d8">
+            <a href="#" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px">
+              <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #6fb383; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">ИП</span>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <span style="font-weight: 700">Иван Петров</span>
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 14px; color: #4a5c45">Раз в неделю · <span style="background: #f8edbf; color: #0e1a0e; border-radius: 6px; padding: 1px 7px; font-size: 13px; font-weight: 700">просрочено на 12 дней</span></span>
+              </span>
+            </a>
+            <button type="button" aria-label="Связались: Иван Петров" title="Связались" style="width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 14px; background: #cfeab9; color: #0e1a0e; cursor: pointer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+          </li>
+          <li style="display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; min-height: 76px; box-sizing: border-box; border-top: 1px solid #e3f1d8">
+            <a href="Desktop-Card.dc.html" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px">
+              <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #cfeab9; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">АС</span>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <span style="font-weight: 700">Анна Смирнова</span>
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 14px; color: #4a5c45">Раз в месяц · <span style="background: #f8edbf; color: #0e1a0e; border-radius: 6px; padding: 1px 7px; font-size: 13px; font-weight: 700">просрочено на 3 дня</span></span>
+              </span>
+            </a>
+            <button type="button" aria-label="Связались: Анна Смирнова" title="Связались" style="width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 14px; background: #cfeab9; color: #0e1a0e; cursor: pointer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+          </li>
+        </ul>
+      </section>
+    </sc-if>
+
+    <div style="position: relative">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a0e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 18px; top: 16px"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input type="search" aria-label="Поиск по контактам" placeholder="Имя, телефон, почта, заметка…" style="width: 100%; height: 52px; box-sizing: border-box; border: 1px solid rgb(14 26 14 / 0.14); border-radius: 14px; background: #ffffff; box-shadow: 0 4px 14px rgb(14 26 14 / 0.06); padding: 0 16px 0 48px; font-family: Manrope, sans-serif; font-weight: 600; font-size: 17px; color: #0e1a0e">
+    </div>
+
+    <ul aria-label="Все контакты" style="list-style: none; margin: 0; padding: 0; background: #ffffff; border-radius: 28px; box-shadow: 0 8px 30px rgb(14 26 14 / 0.08); overflow: hidden">
+      <li>
+        <a href="#" style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; min-height: 72px; box-sizing: border-box">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #6fb383; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">АЗ</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 700">Алексей Зайцев</span>
+            <span style="font-size: 14px; color: #4a5c45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Фотограф, снимал нашу свадьбу</span>
+          </span>
+          <span class="contact-side" style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: #4a5c45; flex-shrink: 0"><span style="font-variant-numeric: tabular-nums">+7 900 555-12-34</span><span>alexey@zaitsev.photo</span></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </li>
+      <li style="border-top: 1px solid #e3f1d8">
+        <a href="#" style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; min-height: 72px; box-sizing: border-box">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #f6e7a6; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">АМ</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 700">Алина Морозова</span>
+            <span style="font-size: 14px; color: #4a5c45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Соседка по даче</span>
+          </span>
+          <span class="contact-side" style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: #4a5c45; flex-shrink: 0"><span style="font-variant-numeric: tabular-nums">+7 916 204-77-10</span></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </li>
+      <li style="border-top: 1px solid #e3f1d8">
+        <a href="Desktop-Card.dc.html" style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; min-height: 72px; box-sizing: border-box">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #cfeab9; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">АС</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 700">Анна Смирнова</span>
+            <span style="font-size: 14px; color: #4a5c45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Дизайнер, бывшая коллега</span>
+          </span>
+          <span class="contact-side" style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: #4a5c45; flex-shrink: 0"><span style="font-variant-numeric: tabular-nums">+7 900 123-45-67</span><span>anna@example.ru</span></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </li>
+      <li style="border-top: 1px solid #e3f1d8">
+        <a href="#" style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; min-height: 72px; box-sizing: border-box">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #0e1a0e; color: #cfeab9; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">АБ</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 700">Антон Белов</span>
+            <span style="font-size: 14px; color: #4a5c45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Тренер по плаванию</span>
+          </span>
+          <span class="contact-side" style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: #4a5c45; flex-shrink: 0"><span style="font-variant-numeric: tabular-nums">+7 903 888-01-02</span><span>belov.swim@example.ru</span></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </li>
+      <li style="border-top: 1px solid #e3f1d8">
+        <a href="#" style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; min-height: 72px; box-sizing: border-box">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #6fb383; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">АК</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 700">Артём Ковалёв</span>
+            <span style="font-size: 14px; color: #4a5c45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Однокурсник, вместе на физтехе</span>
+          </span>
+          <span class="contact-side" style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: #4a5c45; flex-shrink: 0"><span>artem.k@example.ru</span></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </li>
+      <li style="border-top: 1px solid #e3f1d8">
+        <a href="#" style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; min-height: 72px; box-sizing: border-box">
+          <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #0e1a0e; color: #cfeab9; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0">БО</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 700">Борис Орлов</span>
+            <span style="font-size: 14px; color: #4a5c45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Бывший руководитель, наставник</span>
+          </span>
+          <span class="contact-side" style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: #4a5c45; flex-shrink: 0"><span style="font-variant-numeric: tabular-nums">+7 925 310-40-50</span><span>b.orlov@example.ru</span></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5c45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+      </li>
+    </ul>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"showDue":{"editor":"boolean","default":true,"section":"Состояние"},"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { showDue: this.props.showDue ?? true };
+  }
+}
+</script>
+</body>
+</html>

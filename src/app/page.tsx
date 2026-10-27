@@ -3,12 +3,12 @@ import { SearchXIcon, UsersIcon } from "lucide-react";
 import { AddContactButton } from "@/components/contact-buttons";
 import { ContactList } from "@/components/contact-list";
 import { ContactSearch } from "@/components/contact-search";
+import { DueContacts } from "@/components/due-contacts";
 import { EmptyState } from "@/components/empty-state";
 import { Highlight } from "@/components/highlight";
 import { countContacts, listContacts } from "@/lib/contacts";
-import { formatNumber, pluralize } from "@/lib/format";
-
-const contactForms: [string, string, string] = ["контакт", "контакта", "контактов"];
+import { contactForms, formatNumber, pluralize } from "@/lib/format";
+import { listDueContacts } from "@/lib/keep-in-touch";
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -19,7 +19,12 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
   const query = (firstParam(params.q) ?? "").trim();
   const addedId = Number(firstParam(params.added)) || null;
 
-  const [contacts, total] = await Promise.all([listContacts(query), countContacts()]);
+  // The "Пора связаться" block is hidden while a search is on, so it is not even read then
+  const [contacts, total, dueContacts] = await Promise.all([
+    listContacts(query),
+    countContacts(),
+    query ? [] : listDueContacts(),
+  ]);
 
   return (
     <div className="grid gap-6">
@@ -38,6 +43,8 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
         </div>
         <AddContactButton />
       </div>
+
+      {!query && <DueContacts contacts={dueContacts} />}
 
       {total > 0 && <ContactSearch />}
 
