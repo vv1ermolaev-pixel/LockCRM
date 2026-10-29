@@ -33,8 +33,17 @@ export function ContactSearch() {
   function search(rawQuery: string) {
     const query = rawQuery.trim();
     setSentQuery(query);
+    // Only "q" changes: the chosen group stays, the "new contact" highlight goes
+    const params = new URLSearchParams(searchParams);
+    params.delete("added");
+    if (query) {
+      params.set("q", query);
+    } else {
+      params.delete("q");
+    }
+    const next = params.toString();
     startTransition(() => {
-      router.replace(query ? `${pathname}?q=${encodeURIComponent(query)}` : pathname, { scroll: false });
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
     });
   }
 

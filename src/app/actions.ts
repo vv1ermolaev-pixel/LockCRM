@@ -2,9 +2,12 @@
 
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { db } from "@/db";
 import { contacts, notes } from "@/db/schema";
+import { groupColors } from "@/lib/group-colors";
+import * as groupStore from "@/lib/groups";
 import {
   noteSchema,
   previousMarkSchema,
@@ -17,6 +20,8 @@ export type ContactActionResult =
   | { ok: true; id: number; name: string }
   | { ok: false; errors: ContactFieldErrors };
 
+export type GroupActionResult = groupStore.GroupResult;
+
 export type NoteActionResult = { ok: true } | { ok: false; error: string };
 
 // `previous` is the mark before this press (an ISO date, or null), which "Отменить" gives back
@@ -24,7 +29,7 @@ export type MarkContactedResult = { ok: true; previous: string | null };
 
 function assertValidId(id: number) {
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error(`Invalid contact id: ${id}`);
+    throw new Error(`Invalid id: ${id}`);
   }
 }
 
@@ -34,10 +39,13 @@ export async function createContact(formData: FormData): Promise<ContactActionRe
     return { ok: false, errors: toFieldErrors(parsed.error) };
   }
 
-  const [created] = await db
-    .insert(contacts)
-    .values(parsed.data)
-    .returning({ id: contacts.id, name: contacts.name });
+  const { groupIds, newGroups, ...fields } = parsed.data;
+  // One transaction: if the groups cannot be written, the contact is not saved either
+  const created = await db.transaction(async (tx) => {
+    const [row] = await tx.insert(contacts).values(fields).returning({ id: contacts.id, name: contacts.name });
+    await groupStore.setContactGroups(tx, row.id, { groupIds, newNames: newGroups });
+    return row;
+  });
 
   revalidatePath("/", "layout");
   return { ok: true, id: created.id, name: created.name };
@@ -50,14 +58,19 @@ export async function updateContact(id: number, formData: FormData): Promise<Con
     return { ok: false, errors: toFieldErrors(parsed.error) };
   }
 
-  const [updated] = await db
-    .update(contacts)
-    .set(parsed.data)
-    .where(eq(contacts.id, id))
-    .returning({ id: contacts.id, name: contacts.name });
-  if (!updated) {
-    throw new Error(`Contact ${id} not found`);
-  }
+  const { groupIds, newGroups, ...fields } = parsed.data;
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(contacts)
+      .set(fields)
+      .where(eq(contacts.id, id))
+      .returning({ id: contacts.id, name: contacts.name });
+    if (!row) {
+      throw new Error(`Contact ${id} not found`);
+    }
+    await groupStore.setContactGroups(tx, row.id, { groupIds, newNames: newGroups });
+    return row;
+  });
 
   revalidatePath("/", "layout");
   return { ok: true, id: updated.id, name: updated.name };
@@ -132,6 +145,50 @@ export async function undoMarkContacted(contactId: number, previous: string | nu
     .set({ contactMarkedAt: parsed.data === null ? null : new Date(parsed.data) })
     .where(eq(contacts.id, contactId));
 
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// Group actions refresh every page: the filter, the labels in the list and on cards, and the contact window
+// all show groups, and the open "Группы" window gets the new list from the re-rendered page
+export async function createGroup(formData: FormData): Promise<GroupActionResult> {
+  const result = await groupStore.createGroup(String(formData.get("name") ?? ""));
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+export async function renameGroup(id: number, formData: FormData): Promise<GroupActionResult> {
+  assertValidId(id);
+  const result = await groupStore.renameGroup(id, String(formData.get("name") ?? ""));
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+export async function setGroupColor(id: number, color: string): Promise<{ ok: true }> {
+  assertValidId(id);
+  const parsed = z.enum(groupColors).safeParse(color);
+  if (!parsed.success) {
+    throw new Error(`Invalid group color: ${color}`);
+  }
+  await groupStore.setGroupColor(id, parsed.data);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function reorderGroups(orderedIds: number[]): Promise<{ ok: true }> {
+  const parsed = z.array(z.number().int().positive()).safeParse(orderedIds);
+  if (!parsed.success) {
+    throw new Error(`Invalid group order: ${JSON.stringify(orderedIds)}`);
+  }
+  await groupStore.reorderGroups(parsed.data);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// A group that is already gone is not an error, as in deleteContact
+export async function deleteGroup(id: number): Promise<{ ok: true }> {
+  assertValidId(id);
+  await groupStore.deleteGroup(id);
   revalidatePath("/", "layout");
   return { ok: true };
 }

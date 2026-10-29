@@ -29,6 +29,18 @@
   --color-rule: rgb(14 26 14 / 0.14);
   --color-danger: #b3261e;
 
+  /* Group labels (src/lib/group-colors.ts). Light pastels with `ink` text: contrast with ink is
+     14.1, 13.9, 13.4, 12.7, 12.9, 13.4, 13.8 and 14.1 to 1 in this order, well above 4.5.
+     Green and yellow differ from pistachio and butter, so a label is not read as a status mark */
+  --color-group-green: #d4ecc2;
+  --color-group-yellow: #f3e3a0;
+  --color-group-peach: #f8d9bf;
+  --color-group-pink: #f6d0d8;
+  --color-group-lilac: #e2d6f3;
+  --color-group-blue: #cfe1f5;
+  --color-group-teal: #c6e9e2;
+  --color-group-gray: #e3e5df;
+
   /* Type roles: base = phone, `-lg` = wider screens */
   --text-title: 30px;
   --text-title--line-height: 1.15;

@@ -8,18 +8,26 @@ import Link from "next/link";
 import { ChevronRightIcon } from "lucide-react";
 
 import { ContactAvatar } from "@/components/contact-avatar";
+import { GroupBadge } from "@/components/group-badge";
 import { MatchText } from "@/components/match-text";
 import { Badge } from "@/components/ui/badge";
 import type { ContactListItem, ContactMatch } from "@/lib/contacts";
+import type { GroupListItem } from "@/lib/groups";
 import { findPhoneRanges, findWordRanges, parseSearchQuery, phoneMatches, type SearchQuery } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
 export function ContactList({
   contacts,
+  groups,
+  groupId,
   addedId,
   query,
 }: {
   contacts: ContactListItem[];
+  // All groups in the user's order: labels take names, colors and order from here
+  groups: GroupListItem[];
+  // The group chosen in the filter: the card's "Все контакты" brings it back
+  groupId: number | null;
   addedId: number | null;
   query: string;
 }) {
@@ -37,13 +45,14 @@ export function ContactList({
         const isNew = contact.id === addedId;
         // Found by phone: the query's digits are not words, so "8" is not marked in "grigoriy78@…"
         const foundByPhone = Boolean(search.phone && contact.phone && phoneMatches(contact.phone, search.phone));
+        const contactGroups = groups.filter((group) => contact.groupIds.includes(group.id));
         const marked = (text: string) => (
           <MatchText text={text} ranges={foundByPhone ? [] : findWordRanges(text, search.words)} />
         );
         return (
           <li key={contact.id} id={`contact-${contact.id}`} className="scroll-mt-24">
             <Link
-              href={`/contacts/${contact.id}`}
+              href={`/contacts/${contact.id}${groupId ? `?group=${groupId}` : ""}`}
               className={cn(
                 "flex items-center gap-3.5 px-4 py-3.5 transition-colors duration-150 hover:bg-muted focus-visible:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:px-5",
                 isNew && "bg-butter hover:bg-butter",
@@ -57,6 +66,13 @@ export function ContactList({
                 </div>
                 {contact.about && <p className="truncate text-sm text-muted-foreground">{marked(contact.about)}</p>}
                 {contact.match && <MatchLine match={contact.match} search={search} />}
+                {contactGroups.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {contactGroups.map((group) => (
+                      <GroupBadge key={group.id} name={group.name} color={group.color} />
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="hidden shrink-0 text-right text-sm text-muted-foreground sm:block">
                 {contact.phone && (
