@@ -114,11 +114,30 @@ async function seedContact({ label, frequency = null, createdAt = daysAgo(0), no
   return { id: contact.id, name };
 }
 
+const groupNames = new Set<string>();
+
+// A group at the end of the user's order, with these contacts in it
+async function seedGroup(label: string, contactIds: number[]) {
+  const name = `${label}-${suffix}`;
+  groupNames.add(name);
+  const [group] = await sql<{ id: number }[]>`
+    insert into groups (name, color, position)
+    values (${name}, 'gray', (select coalesce(max(position), -1) + 1 from groups))
+    returning id
+  `;
+  for (const contactId of contactIds) {
+    await sql`insert into contact_groups (contact_id, group_id) values (${contactId}, ${group.id})`;
+  }
+  return { id: group.id, name };
+}
+
 // After every test, so the contacts of one test never show up in the "Пора связаться" block of the next.
-// Notes go with their contact (on delete cascade)
+// Notes and group membership go with their contact and group (on delete cascade)
 test.afterEach(async () => {
   await sql`delete from contacts where name = any(${[...names]})`;
+  await sql`delete from groups where name = any(${[...groupNames]})`;
   names.clear();
+  groupNames.clear();
 });
 
 test.afterAll(async () => {
@@ -481,6 +500,38 @@ test.describe("«Пора связаться» block", () => {
     await page.getByRole("button", { name: "Очистить поиск" }).click();
     await expect(page).not.toHaveURL(/\?q=/);
     await expect(dueRow(page, name)).toBeVisible();
+  });
+
+  test("the group filter narrows the block, «Все» brings everybody back", async ({ page }) => {
+    const mama = await seedContact({ label: "Мама", frequency: "week", createdAt: daysAgo(10) });
+    const boris = await seedContact({ label: "Борис", frequency: "week", createdAt: daysAgo(10) });
+    const notYet = await seedContact({ label: "СрокВпереди", frequency: "week", createdAt: daysAgo(3) });
+    const family = await seedGroup("Семья", [mama.id]);
+    await seedGroup("Теннис", [boris.id]);
+    const nobodyDue = await seedGroup("Никому не пора", [notYet.id]);
+    const groupFilter = page.getByRole("navigation", { name: "Фильтр по группам" });
+
+    await test.step("«Семья» chosen: only Мама in the block", async () => {
+      await page.goto("/");
+      await groupFilter.getByRole("link", { name: family.name, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`[?&]group=${family.id}`));
+      await expect(dueRow(page, mama.name)).toContainText("Раз в неделю · просрочено на 3 дня");
+      await expect(dueBlock(page).getByRole("listitem")).toHaveCount(1);
+    });
+
+    await test.step("a group where nobody is due: no block, while others are due", async () => {
+      await groupFilter.getByRole("link", { name: nobodyDue.name, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`[?&]group=${nobodyDue.id}`));
+      await expect(contactRows(page)).toHaveCount(1);
+      await expect(dueBlock(page)).toHaveCount(0);
+    });
+
+    await test.step("«Все»: Мама and Борис are both in the block again", async () => {
+      await groupFilter.getByRole("link", { name: "Все", exact: true }).click();
+      await expect(page).not.toHaveURL(/[?&]group=/);
+      await expect(dueRow(page, mama.name)).toBeVisible();
+      await expect(dueRow(page, boris.name)).toBeVisible();
+    });
   });
 
   test("no block when nobody is due", async ({ page }) => {
