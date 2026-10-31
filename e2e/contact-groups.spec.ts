@@ -54,8 +54,14 @@ test.afterAll(async () => {
 });
 
 test("contact groups: create, add a contact, filter the list", async ({ page }) => {
-  await test.step("create a group in the Группы window: it is last, with 0 people", async () => {
+  // The group filter with its "Группы" button is shown only when there are contacts: in an empty database
+  // (as in CI) it appears after this one
+  await test.step("add a contact without groups", async () => {
     await page.goto("/");
+    await addContact(page, outsiderName, false);
+  });
+
+  await test.step("create a group in the Группы window: it is last, with 0 people", async () => {
     await page.getByRole("button", { name: "Группы" }).click();
     const dialog = page.getByRole("dialog", { name: "Группы" });
     await dialog.getByLabel("Новая группа").fill(groupName);
@@ -71,9 +77,8 @@ test("contact groups: create, add a contact, filter the list", async ({ page }) 
     await expect(groupFilter(page).getByRole("link").last()).toHaveText(groupName);
   });
 
-  await test.step("add one contact to the group and one without groups", async () => {
+  await test.step("add a contact to the group", async () => {
     await addContact(page, memberName, true);
-    await addContact(page, outsiderName, false);
 
     await expect(contactRows(page).filter({ hasText: memberName })).toContainText(groupName);
     await expect(contactRows(page).filter({ hasText: outsiderName })).not.toContainText(groupName);
