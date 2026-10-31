@@ -168,11 +168,7 @@ function FrequencyField({ defaultValue, error }: { defaultValue?: string | null;
       <Label htmlFor={id}>Как часто общаться</Label>
       {/* With `name`, Radix Select adds a hidden <select>, so the value goes into FormData like other fields */}
       <Select name="contactFrequency" defaultValue={defaultValue ?? noContactFrequency}>
-        <SelectTrigger
-          id={id}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
-        >
+        <SelectTrigger id={id} aria-invalid={error ? true : undefined} aria-describedby={error ? errorId : undefined}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

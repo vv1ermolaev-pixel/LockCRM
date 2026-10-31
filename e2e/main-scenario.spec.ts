@@ -115,6 +115,9 @@ test("main scenario works end to end", async ({ page }) => {
       await expect(contactRows(otherPage)).toHaveCount(await countContactsInDb());
 
       await otherPage.getByRole("searchbox", { name: "Поиск по контактам" }).fill(contactName);
+      // Wait for the search to apply: in a database with only this contact the list has one row before it does,
+      // and a late search would bring the page back from the card to the list
+      await expect(otherPage).toHaveURL(/\?q=/);
       await expect(contactRows(otherPage)).toHaveCount(1);
       await contactRows(otherPage).getByRole("link").click();
 

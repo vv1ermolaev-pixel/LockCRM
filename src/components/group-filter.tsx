@@ -87,9 +87,7 @@ export function GroupFilter({ groups, selectedId }: { groups: GroupListItem[]; s
 
   // On a phone the chosen group may be past the edge of the row: bring it into view
   useEffect(() => {
-    listRef.current
-      ?.querySelector('[aria-current="true"]')
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [selectedId]);
 
   function hrefFor(groupId: number | null) {

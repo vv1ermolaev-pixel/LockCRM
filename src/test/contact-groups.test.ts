@@ -339,7 +339,8 @@ describe("Group filter on the home page", () => {
 describe("Group filter with search", () => {
   it("finds only the Иван from «Теннис» (5 people) when searching «Иван»: 1 of 5", async () => {
     const tennis = await addGroup("Теннис");
-    for (const name of ["Иван Петров", "Анна", "Борис", "Вера", "Галина"]) await addContact(name, { groupIds: [tennis] });
+    for (const name of ["Иван Петров", "Анна", "Борис", "Вера", "Галина"])
+      await addContact(name, { groupIds: [tennis] });
     await addContact("Иван Сидоров");
 
     expect((await listContacts("Иван", tennis)).map((contact) => contact.name)).toEqual(["Иван Петров"]);

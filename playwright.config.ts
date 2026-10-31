@@ -17,7 +17,8 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm dev",
+    // CI tests the production build (built in an earlier step); locally the dev server is enough
+    command: process.env.CI ? "pnpm start" : "pnpm dev",
     url: baseURL,
     reuseExistingServer: true,
     timeout: 180_000,

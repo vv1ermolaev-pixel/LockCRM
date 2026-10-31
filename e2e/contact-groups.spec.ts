@@ -103,7 +103,10 @@ test("contact groups: create, add a contact, filter the list", async ({ page }) 
   await test.step("the card shows the group, and the way back keeps the filter", async () => {
     await contactRows(page).getByRole("link").click();
     await expect(page.getByRole("heading", { level: 1, name: memberName })).toBeVisible();
-    const groupsDetail = page.locator("div").filter({ has: page.locator("dt", { hasText: /^Группы$/ }) }).last();
+    const groupsDetail = page
+      .locator("div")
+      .filter({ has: page.locator("dt", { hasText: /^Группы$/ }) })
+      .last();
     await expect(groupsDetail.locator("dd")).toHaveText(groupName);
 
     await page.getByRole("link", { name: "Все контакты", exact: true }).click();

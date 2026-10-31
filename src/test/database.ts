@@ -15,7 +15,9 @@ function databaseName(url: string) {
 export function assertTestDatabase(testUrl: string, workingUrl: string | undefined) {
   const name = databaseName(testUrl);
   if (!name.endsWith(TEST_SUFFIX) || (workingUrl && name === databaseName(workingUrl))) {
-    throw new Error(`Refusing to run tests on the database "${name}": it must end with "${TEST_SUFFIX}" and differ from DATABASE_URL.`);
+    throw new Error(
+      `Refusing to run tests on the database "${name}": it must end with "${TEST_SUFFIX}" and differ from DATABASE_URL.`,
+    );
   }
 }
 

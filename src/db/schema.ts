@@ -71,7 +71,10 @@ export const contactGroups = pgTable(
       .notNull()
       .references(() => groups.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.contactId, table.groupId] }), index("contact_groups_group_id_idx").on(table.groupId)],
+  (table) => [
+    primaryKey({ columns: [table.contactId, table.groupId] }),
+    index("contact_groups_group_id_idx").on(table.groupId),
+  ],
 );
 
 export type Contact = typeof contacts.$inferSelect;

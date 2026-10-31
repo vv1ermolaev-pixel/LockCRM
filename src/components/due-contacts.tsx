@@ -189,7 +189,10 @@ function DueRow({ leaving, children }: { leaving: boolean; children: React.React
 function Confirmation({ name, undoing, onUndo }: { name: string; undoing: boolean; onUndo: () => void }) {
   return (
     <div className="relative flex min-h-18 items-center gap-2.5 bg-muted py-3 pr-3 pl-4 duration-200 animate-in fade-in motion-reduce:animate-none sm:min-h-19 sm:gap-3 sm:pr-4 sm:pl-5">
-      <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ink text-pistachio">
+      <span
+        aria-hidden
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ink text-pistachio"
+      >
         <CheckIcon className="size-5.5" strokeWidth={3} />
       </span>
       <div role="status" className="grid min-w-0 flex-1 gap-0.5">

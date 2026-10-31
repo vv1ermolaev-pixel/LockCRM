@@ -14,7 +14,10 @@ const TIME_ZONE = "Europe/Moscow";
 // The same expressions drive the "Пора связаться" block and the contact card, so they never disagree.
 // Built with the query builder, not raw sql, for the same reason as bestNoteBody() in contacts.ts:
 // in a single-table select Drizzle drops table names from columns, and an unqualified "id" would mean notes.id
-const lastNoteAt = db.select({ value: max(notes.createdAt) }).from(notes).where(eq(notes.contactId, contacts.id));
+const lastNoteAt = db
+  .select({ value: max(notes.createdAt) })
+  .from(notes)
+  .where(eq(notes.contactId, contacts.id));
 
 // The later of the last note and the last "Связались" mark; with neither, the day the contact was added.
 // greatest() skips NULLs, so it is right when there are no notes, no mark, or neither.
@@ -56,7 +59,9 @@ export async function listDueContacts(groupId?: number | null): Promise<DueConta
     .where(and(sql`${overdueDays} > 0`, contactInGroup(groupId)))
     .orderBy(desc(overdueDays), asc(contacts.name), asc(contacts.id));
 
-  return rows.flatMap(({ contactFrequency, ...contact }) => (contactFrequency ? [{ ...contact, contactFrequency }] : []));
+  return rows.flatMap(({ contactFrequency, ...contact }) =>
+    contactFrequency ? [{ ...contact, contactFrequency }] : [],
+  );
 }
 
 export type KeepInTouchStatus = {

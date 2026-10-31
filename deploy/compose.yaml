@@ -2,8 +2,8 @@
 # Used only through deploy/deploy.sh and deploy/rollback.sh: they set APP_IMAGE
 # and read secrets from /srv/lockcrm/.env (mode 600).
 
+# Container logs are capped: at most 3 files of 10 MB per container
 x-logging: &logging
-  # Container logs are capped: at most 3 files of 10 MB per container
   driver: json-file
   options:
     max-size: "10m"

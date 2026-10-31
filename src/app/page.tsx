@@ -69,7 +69,11 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
       ) : query ? (
         <EmptyState
           icon={<SearchXIcon />}
-          title={group ? `Никого не нашли по запросу «${query}» в группе «${group.name}»` : `Никого не нашли по запросу «${query}»`}
+          title={
+            group
+              ? `Никого не нашли по запросу «${query}» в группе «${group.name}»`
+              : `Никого не нашли по запросу «${query}»`
+          }
           text="Проверьте написание или поищите иначе: по телефону, почте или слову из заметки."
         />
       ) : group ? (

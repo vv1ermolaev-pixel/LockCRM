@@ -159,7 +159,10 @@ export async function reorderGroups(orderedIds: number[]) {
     const sent = [...new Set(orderedIds)].filter((id) => currentIds.includes(id));
     const order = [...sent, ...currentIds.filter((id) => !sent.includes(id))];
     for (const [index, id] of order.entries()) {
-      await tx.update(groups).set({ position: index + 1 }).where(eq(groups.id, id));
+      await tx
+        .update(groups)
+        .set({ position: index + 1 })
+        .where(eq(groups.id, id));
     }
   });
 }
@@ -179,12 +182,10 @@ export async function setContactGroups(
 
   await executor.delete(contactGroups).where(eq(contactGroups.contactId, contactId));
   if (ids.size === 0) return;
-  await executor
-    .insert(contactGroups)
-    .select(
-      executor
-        .select({ contactId: sql<number>`${contactId}::integer`.as("contact_id"), groupId: groups.id })
-        .from(groups)
-        .where(inArray(groups.id, [...ids])),
-    );
+  await executor.insert(contactGroups).select(
+    executor
+      .select({ contactId: sql<number>`${contactId}::integer`.as("contact_id"), groupId: groups.id })
+      .from(groups)
+      .where(inArray(groups.id, [...ids])),
+  );
 }

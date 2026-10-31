@@ -16,9 +16,7 @@ import {
   type ContactFieldErrors,
 } from "@/lib/validation";
 
-export type ContactActionResult =
-  | { ok: true; id: number; name: string }
-  | { ok: false; errors: ContactFieldErrors };
+export type ContactActionResult = { ok: true; id: number; name: string } | { ok: false; errors: ContactFieldErrors };
 
 export type GroupActionResult = groupStore.GroupResult;
 
@@ -123,7 +121,10 @@ export async function markContacted(contactId: number): Promise<MarkContactedRes
     if (!row) return null;
 
     // The database clock, like created_at and the due date calculation
-    await tx.update(contacts).set({ contactMarkedAt: sql`now()` }).where(eq(contacts.id, contactId));
+    await tx
+      .update(contacts)
+      .set({ contactMarkedAt: sql`now()` })
+      .where(eq(contacts.id, contactId));
     return row.markedAt?.toISOString() ?? null;
   });
 
