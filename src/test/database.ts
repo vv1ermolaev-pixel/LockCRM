@@ -1,6 +1,10 @@
 // The test database lives in the same Postgres as the working one, under the working name plus "_test".
 // Every test starts from a database that is exactly what a fresh deploy gives: all migrations, no user data.
 
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -45,14 +49,48 @@ export async function createTestDatabase(workingUrl: string, name: string) {
   }
 }
 
-// The database as right after a deploy: schemas dropped and every migration applied again
-export async function resetTestDatabase(testUrl: string) {
+const MIGRATIONS_FOLDER = "./drizzle";
+
+async function migrateTestDatabase(testUrl: string, migrationsFolder: string, { dropFirst }: { dropFirst: boolean }) {
   const client = postgres(testUrl, { max: 1, onnotice: () => {} });
   try {
-    await client`drop schema if exists public, drizzle cascade`;
-    await client`create schema public`;
-    await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
+    if (dropFirst) {
+      await client`drop schema if exists public, drizzle cascade`;
+      await client`create schema public`;
+    }
+    await migrate(drizzle(client), { migrationsFolder });
   } finally {
     await client.end();
   }
+}
+
+// The database as right after a deploy: schemas dropped and every migration applied again
+export async function resetTestDatabase(testUrl: string) {
+  await migrateTestDatabase(testUrl, MIGRATIONS_FOLDER, { dropFirst: true });
+}
+
+// The database as it was before a later feature: schemas dropped and migrations applied up to `lastTag`
+// (e.g. "0000_init"). A copy of the migrations folder with a shortened journal stands in for the old release
+export async function resetTestDatabaseUpTo(testUrl: string, lastTag: string) {
+  const journal = JSON.parse(await readFile(join(MIGRATIONS_FOLDER, "meta", "_journal.json"), "utf8"));
+  const last = journal.entries.findIndex((entry: { tag: string }) => entry.tag === lastTag);
+  if (last === -1) throw new Error(`No migration "${lastTag}"`);
+  const entries: { tag: string }[] = journal.entries.slice(0, last + 1);
+
+  const folder = await mkdtemp(join(tmpdir(), "migrations-"));
+  try {
+    await mkdir(join(folder, "meta"));
+    await writeFile(join(folder, "meta", "_journal.json"), JSON.stringify({ ...journal, entries }));
+    for (const { tag } of entries) {
+      await copyFile(join(MIGRATIONS_FOLDER, `${tag}.sql`), join(folder, `${tag}.sql`));
+    }
+    await migrateTestDatabase(testUrl, folder, { dropFirst: true });
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+}
+
+// What a deploy does to an existing database: the migrations not applied yet
+export async function applyPendingMigrations(testUrl: string) {
+  await migrateTestDatabase(testUrl, MIGRATIONS_FOLDER, { dropFirst: false });
 }
