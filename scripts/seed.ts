@@ -2,11 +2,11 @@
 // Never deletes anything: if contacts already exist, it stops.
 // Usage: pnpm db:seed [count]   (default: 1000)
 
-import { count } from "drizzle-orm";
+import { asc, count, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-import { contacts, notes } from "../src/db/schema";
+import { contactGroups, contacts, groups, notes } from "../src/db/schema";
 import { contactFrequencies } from "../src/lib/contact-frequency";
 
 const CONTACT_COUNT = Number(process.argv[2] ?? 1000);
@@ -28,6 +28,8 @@ const random = createRandom(20261006);
 // Frequencies have their own generator: drawing from `random` would shift every value generated after it,
 // and the contacts, notes and dates of an existing seed would come out different
 const frequencyRandom = createRandom(20261027);
+// Groups have their own generator too, for the same reason
+const groupRandom = createRandom(20261029);
 const chance = (probability: number) => random() < probability;
 const randomInt = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
 const pick = <T>(items: readonly T[]) => items[Math.floor(random() * items.length)];
@@ -325,6 +327,23 @@ function makeFrequency() {
   return hasFrequency ? contactFrequencies[Math.floor(kind * contactFrequencies.length)] : null;
 }
 
+// Added after the four default groups, in the colors a new group would get
+const seedGroups = [
+  { name: "Теннис", color: "peach" },
+  { name: "Аналитики", color: "lilac" },
+] as const;
+
+// About 40% of the contacts are in one or two groups. Four draws every time, whatever the result,
+// so each contact's groups do not depend on the previous ones
+function pickGroups(groupIds: number[]) {
+  const inGroups = groupRandom() < 0.4;
+  const two = groupRandom() < 0.3;
+  const first = groupIds[Math.floor(groupRandom() * groupIds.length)];
+  const second = groupIds[Math.floor(groupRandom() * groupIds.length)];
+  if (!inGroups) return [];
+  return two && second !== first ? [first, second] : [first];
+}
+
 function makeContact(): SeedContact {
   const gender: Gender = chance(0.5) ? "m" : "f";
   const firstName = pick(gender === "m" ? maleNames : femaleNames);
@@ -374,8 +393,19 @@ async function main() {
 
     const generated = Array.from({ length: CONTACT_COUNT }, makeContact);
     let noteTotal = 0;
+    let membershipTotal = 0;
 
     await db.transaction(async (tx) => {
+      for (const group of seedGroups) {
+        await tx
+          .insert(groups)
+          .values({ ...group, position: sql`(select coalesce(max(${groups.position}), 0) + 1 from ${groups})` })
+          .onConflictDoNothing();
+      }
+      const groupIds = (
+        await tx.select({ id: groups.id }).from(groups).orderBy(asc(groups.position), asc(groups.id))
+      ).map((group) => group.id);
+
       for (let start = 0; start < generated.length; start += BATCH_SIZE) {
         const batch = generated.slice(start, start + BATCH_SIZE);
         const inserted = await tx
@@ -393,10 +423,18 @@ async function main() {
           await tx.insert(notes).values(batchNotes);
         }
         noteTotal += batchNotes.length;
+
+        const memberships = inserted.flatMap((row) =>
+          pickGroups(groupIds).map((groupId) => ({ contactId: row.id, groupId })),
+        );
+        if (memberships.length > 0) {
+          await tx.insert(contactGroups).values(memberships);
+        }
+        membershipTotal += memberships.length;
       }
     });
 
-    console.log(`Seeded ${generated.length} contacts and ${noteTotal} notes.`);
+    console.log(`Seeded ${generated.length} contacts, ${noteTotal} notes and ${membershipTotal} group memberships.`);
   } finally {
     await client.end();
   }

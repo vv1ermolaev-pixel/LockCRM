@@ -15,6 +15,20 @@
       "when": 1793048977978,
       "tag": "0001_keep_in_touch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793275680397,
+      "tag": "0002_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793275682867,
+      "tag": "0003_default_groups",
+      "breakpoints": true
     }
   ]
 }

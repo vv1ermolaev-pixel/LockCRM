@@ -19,8 +19,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { pluralize } from "@/lib/format";
+import type { GroupListItem } from "@/lib/groups";
 
-export function AddContactButton() {
+export function AddContactButton({ groups }: { groups: GroupListItem[] }) {
   const router = useRouter();
 
   return (
@@ -35,6 +36,7 @@ export function AddContactButton() {
       title="Новый контакт"
       description="Обязательно только имя — остальное можно дописать позже."
       submitLabel="Добавить"
+      groups={groups}
       action={createContact}
       onSuccess={({ id, name }) => {
         toast.success(`Контакт «${name}» добавлен`, {
@@ -49,9 +51,11 @@ export function AddContactButton() {
 
 export function EditContactButton({
   contact,
+  groups,
   action,
 }: {
   contact: ContactFormValues;
+  groups: GroupListItem[];
   action: (formData: FormData) => Promise<ContactActionResult>;
 }) {
   return (
@@ -66,6 +70,7 @@ export function EditContactButton({
       description="Поправьте данные и сохраните."
       submitLabel="Сохранить"
       defaultValues={contact}
+      groups={groups}
       action={action}
       onSuccess={() => toast.success("Изменения сохранены")}
     />

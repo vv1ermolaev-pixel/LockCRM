@@ -5,28 +5,41 @@ import { ArrowLeftIcon, CalendarIcon, ClockIcon, NotebookPenIcon } from "lucide-
 import { addNote, deleteContact, updateContact } from "@/app/actions";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { DeleteContactButton, EditContactButton } from "@/components/contact-buttons";
+import { GroupBadge } from "@/components/group-badge";
 import { Highlight } from "@/components/highlight";
 import { MarkContactedButton } from "@/components/mark-contacted-button";
 import { NoteForm } from "@/components/note-form";
 import { Button } from "@/components/ui/button";
 import { contactFrequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
+import { getContactGroupIds, listGroups } from "@/lib/groups";
 import { formatCalendarDay, formatDateTime, formatOverdue, pluralize } from "@/lib/format";
 import { getKeepInTouchStatus, type KeepInTouchStatus } from "@/lib/keep-in-touch";
 import { cn } from "@/lib/utils";
 
-export default async function ContactPage({ params }: PageProps<"/contacts/[id]">) {
+export default async function ContactPage({ params, searchParams }: PageProps<"/contacts/[id]">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
+  // The group chosen in the filter on the home page, so "Все контакты" goes back to it
+  const fromGroup = Number((await searchParams).group);
+  const backHref = Number.isInteger(fromGroup) && fromGroup > 0 ? `/?group=${fromGroup}` : "/";
 
-  const [contact, notes, keepInTouch] = await Promise.all([getContact(id), listNotes(id), getKeepInTouchStatus(id)]);
+  const [contact, notes, keepInTouch, groups, groupIds] = await Promise.all([
+    getContact(id),
+    listNotes(id),
+    getKeepInTouchStatus(id),
+    listGroups(),
+    getContactGroupIds(id),
+  ]);
   if (!contact) notFound();
+  // In the user's order of groups
+  const contactGroups = groups.filter((group) => groupIds.includes(group.id));
 
   return (
     <div className="grid gap-6">
       <div>
         <Button variant="ghost" size="sm" asChild className="rounded-full bg-plate pr-4 pl-3 hover:bg-card">
-          <Link href="/">
+          <Link href={backHref}>
             <ArrowLeftIcon />
             Все контакты
           </Link>
@@ -50,7 +63,9 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
                 phone: contact.phone,
                 email: contact.email,
                 contactFrequency: contact.contactFrequency,
+                groupIds,
               }}
+              groups={groups}
               action={updateContact.bind(null, contact.id)}
             />
             <DeleteContactButton
@@ -64,6 +79,15 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
         <dl className="mt-6 grid gap-x-6 gap-y-4 rounded-18 bg-muted p-4 sm:grid-cols-2 sm:p-5">
           <Detail label="Откуда знакомы" className="sm:col-span-2">
             {contact.howWeMet}
+          </Detail>
+          <Detail label="Группы" className="sm:col-span-2">
+            {contactGroups.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {contactGroups.map((group) => (
+                  <GroupBadge key={group.id} name={group.name} color={group.color} className="h-7 px-2.5 text-sm" />
+                ))}
+              </div>
+            )}
           </Detail>
           <Detail label="Телефон">
             {contact.phone && (

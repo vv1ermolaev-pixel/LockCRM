@@ -5,9 +5,11 @@ import { ContactList } from "@/components/contact-list";
 import { ContactSearch } from "@/components/contact-search";
 import { DueContacts } from "@/components/due-contacts";
 import { EmptyState } from "@/components/empty-state";
+import { GroupFilter } from "@/components/group-filter";
 import { Highlight } from "@/components/highlight";
 import { countContacts, listContacts } from "@/lib/contacts";
 import { contactForms, formatNumber, pluralize } from "@/lib/format";
+import { listGroups } from "@/lib/groups";
 import { listDueContacts } from "@/lib/keep-in-touch";
 
 function firstParam(value: string | string[] | undefined) {
@@ -18,13 +20,22 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const query = (firstParam(params.q) ?? "").trim();
   const addedId = Number(firstParam(params.added)) || null;
+  const requestedGroupId = Number(firstParam(params.group)) || null;
+
+  // The group is checked against the list first: one that is gone (deleted, or a stale link) means no filter
+  const groups = await listGroups();
+  const group = groups.find((item) => item.id === requestedGroupId) ?? null;
+  const groupId = group?.id ?? null;
 
   // The "Пора связаться" block is hidden while a search is on, so it is not even read then
-  const [contacts, total, dueContacts] = await Promise.all([
-    listContacts(query),
+  const [contacts, total, groupTotal, dueContacts] = await Promise.all([
+    listContacts(query, groupId),
     countContacts(),
-    query ? [] : listDueContacts(),
+    groupId ? countContacts(groupId) : 0,
+    query ? [] : listDueContacts(groupId),
   ]);
+  // What "Найдено: … из …" counts from: the whole list, or the people of the chosen group
+  const shownTotal = group ? groupTotal : total;
 
   return (
     <div className="grid gap-6">
@@ -35,26 +46,41 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
           </h1>
           <p className="text-lead text-copy">
             {query
-              ? `Найдено: ${formatNumber(contacts.length)} из ${formatNumber(total)}`
-              : total > 0
-                ? pluralize(total, contactForms)
-                : "Здесь будут люди, которых вы знаете лично"}
+              ? `Найдено: ${formatNumber(contacts.length)} из ${formatNumber(shownTotal)}`
+              : group
+                ? `В группе «${group.name}» — ${pluralize(groupTotal, contactForms)}`
+                : total > 0
+                  ? pluralize(total, contactForms)
+                  : "Здесь будут люди, которых вы знаете лично"}
           </p>
         </div>
-        <AddContactButton />
+        <AddContactButton groups={groups} />
       </div>
 
-      {!query && <DueContacts contacts={dueContacts} />}
+      {total > 0 && <GroupFilter groups={groups} selectedId={groupId} />}
+
+      {/* Keyed by the group: the block keeps its own rows (see due-contacts.tsx) and must start over for another group */}
+      {!query && <DueContacts key={groupId ?? "all"} contacts={dueContacts} groupId={groupId} />}
 
       {total > 0 && <ContactSearch />}
 
       {contacts.length > 0 ? (
-        <ContactList contacts={contacts} addedId={addedId} query={query} />
+        <ContactList contacts={contacts} groups={groups} groupId={groupId} addedId={addedId} query={query} />
       ) : query ? (
         <EmptyState
           icon={<SearchXIcon />}
-          title={`Никого не нашли по запросу «${query}»`}
+          title={
+            group
+              ? `Никого не нашли по запросу «${query}» в группе «${group.name}»`
+              : `Никого не нашли по запросу «${query}»`
+          }
           text="Проверьте написание или поищите иначе: по телефону, почте или слову из заметки."
+        />
+      ) : group ? (
+        <EmptyState
+          icon={<UsersIcon />}
+          title={`В группе «${group.name}» пока никого нет`}
+          text="Добавить человека в группу можно в окне «Изменить» на его карточке."
         />
       ) : (
         <EmptyState

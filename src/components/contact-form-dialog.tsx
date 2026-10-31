@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
-import { Loader2Icon } from "lucide-react";
+import { CheckIcon, Loader2Icon, PlusIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import type { ContactActionResult } from "@/app/actions";
@@ -21,9 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { contactFrequencies, contactFrequencyLabels, noContactFrequency } from "@/lib/contact-frequency";
-import type { ContactField, ContactFieldErrors } from "@/lib/validation";
+import { groupColorClasses } from "@/lib/group-colors";
+import type { GroupListItem } from "@/lib/groups";
+import { cn } from "@/lib/utils";
+import { groupNameKey, type ContactField, type ContactFieldErrors } from "@/lib/validation";
 
-export type ContactFormValues = Partial<Record<ContactField, string | null>>;
+type TextField = Exclude<ContactField, "groupIds" | "newGroups">;
+
+export type ContactFormValues = Partial<Record<TextField, string | null>> & { groupIds?: number[] };
 
 type ContactFormDialogProps = {
   trigger: ReactNode;
@@ -31,6 +36,8 @@ type ContactFormDialogProps = {
   description: string;
   submitLabel: string;
   defaultValues?: ContactFormValues;
+  // All groups in the user's order
+  groups: GroupListItem[];
   action: (formData: FormData) => Promise<ContactActionResult>;
   onSuccess: (result: { id: number; name: string }) => void;
 };
@@ -41,6 +48,7 @@ export function ContactFormDialog({
   description,
   submitLabel,
   defaultValues = {},
+  groups,
   action,
   onSuccess,
 }: ContactFormDialogProps) {
@@ -129,6 +137,11 @@ export function ContactFormDialog({
             />
           </div>
           <FrequencyField defaultValue={defaultValues.contactFrequency} error={errors.contactFrequency} />
+          <GroupsField
+            groups={groups}
+            defaultGroupIds={defaultValues.groupIds ?? []}
+            error={errors.newGroups ?? errors.groupIds}
+          />
         </form>
         <DialogFooter>
           <DialogClose asChild>
@@ -176,8 +189,133 @@ function FrequencyField({ defaultValue, error }: { defaultValue?: string | null;
   );
 }
 
+// The dialog content unmounts on close, so the checks start again from the saved groups every time it opens:
+// "Отмена" and closing the window change nothing
+function GroupsField({
+  groups,
+  defaultGroupIds,
+  error,
+}: {
+  groups: GroupListItem[];
+  defaultGroupIds: number[];
+  error?: string;
+}) {
+  const [checkedIds, setCheckedIds] = useState(() => new Set(defaultGroupIds));
+  // Typed names of groups that do not exist yet; the server creates them on save
+  const [newNames, setNewNames] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  const labelId = "contact-groups-label";
+  const errorId = "contact-groups-error";
+
+  function toggle(id: number) {
+    setCheckedIds((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
+
+  function addDraft() {
+    const name = draft.trim();
+    if (!name) return;
+    const key = groupNameKey(name);
+    const existing = groups.find((group) => groupNameKey(group.name) === key);
+    if (existing) {
+      setCheckedIds((current) => new Set(current).add(existing.id));
+    } else if (!newNames.some((newName) => groupNameKey(newName) === key)) {
+      setNewNames((current) => [...current, name]);
+    }
+    setDraft("");
+  }
+
+  return (
+    <div className="grid gap-2">
+      <Label id={labelId} asChild>
+        <p>Группы</p>
+      </Label>
+      <div
+        role="group"
+        aria-labelledby={labelId}
+        aria-describedby={error ? errorId : undefined}
+        className="flex flex-wrap gap-2"
+      >
+        {groups.map((group) => {
+          const checked = checkedIds.has(group.id);
+          return (
+            <button
+              key={group.id}
+              type="button"
+              aria-pressed={checked}
+              onClick={() => toggle(group.id)}
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-12 border-2 px-3 text-sm font-bold text-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                groupColorClasses[group.color],
+                checked ? "border-ink" : "border-transparent",
+              )}
+            >
+              {checked && <CheckIcon className="size-4" strokeWidth={3} aria-hidden />}
+              {group.name}
+            </button>
+          );
+        })}
+        {newNames.map((name) => (
+          // No color yet: the server gives one on save
+          <span
+            key={name}
+            className="inline-flex h-9 items-center gap-1 rounded-12 border-2 border-ink bg-card pr-1 pl-3 text-sm font-bold text-ink"
+          >
+            <CheckIcon className="size-4" strokeWidth={3} aria-hidden />
+            {name}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`Убрать новую группу «${name}»`}
+              onClick={() => setNewNames((current) => current.filter((newName) => newName !== name))}
+            >
+              <XIcon />
+            </Button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          aria-label="Новая группа"
+          placeholder="Новая группа, например: Теннис"
+          autoComplete="off"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            // Enter adds the group instead of submitting the whole form
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addDraft();
+            }
+          }}
+        />
+        <Button type="button" variant="secondary" size="icon" aria-label="Отметить группу" onClick={addDraft}>
+          <PlusIcon />
+        </Button>
+      </div>
+      {groups.map(
+        (group) => checkedIds.has(group.id) && <input key={group.id} type="hidden" name="groupIds" value={group.id} />,
+      )}
+      {newNames.map((name) => (
+        <input key={name} type="hidden" name="newGroups" value={name} />
+      ))}
+      {/* A name typed but not added with "+" is saved too: the person meant it */}
+      {draft.trim() && <input type="hidden" name="newGroups" value={draft} />}
+      {error && (
+        <p id={errorId} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 type FieldProps = {
-  name: ContactField;
+  name: TextField;
   label: string;
   error?: string;
   multiline?: boolean;

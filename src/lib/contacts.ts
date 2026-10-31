@@ -3,7 +3,8 @@ import "server-only";
 import { and, asc, count, desc, eq, inArray, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
-import { contacts, notes } from "@/db/schema";
+import { contactGroups, contacts, groups, notes } from "@/db/schema";
+import { contactInGroup } from "@/lib/groups";
 import {
   makeSnippet,
   normalizeText,
@@ -85,6 +86,9 @@ export type ContactListItem = {
   about: string | null;
   phone: string | null;
   email: string | null;
+  // In the user's order of groups. Names and colors come from the list of groups the page sends once,
+  // so renaming or recoloring a group does not change the rows
+  groupIds: number[];
   match?: ContactMatch;
 };
 
@@ -117,18 +121,33 @@ function explainMatch(contact: FoundContact, search: SearchQuery): ContactMatch 
   return { field: best.field, text: best.field === "email" ? best.text : makeSnippet(best.text, best.words) };
 }
 
+// Built with the query builder for the same reason as bestNoteBody()
+const contactGroupIds = db
+  .select({
+    ids: sql`coalesce(array_agg(${contactGroups.groupId} order by ${groups.position}, ${groups.id}), '{}')`,
+  })
+  .from(contactGroups)
+  .innerJoin(groups, eq(groups.id, contactGroups.groupId))
+  .where(eq(contactGroups.contactId, contacts.id));
+
 const listFields = {
   id: contacts.id,
   name: contacts.name,
   about: contacts.about,
   phone: contacts.phone,
   email: contacts.email,
+  groupIds: sql<number[]>`${contactGroupIds}`,
 };
 
-export async function listContacts(query: string): Promise<ContactListItem[]> {
+// With a group, only the people in it
+export async function listContacts(query: string, groupId?: number | null): Promise<ContactListItem[]> {
   const search = parseSearchQuery(query);
   if (search.words.length === 0) {
-    return db.select(listFields).from(contacts).orderBy(asc(contacts.name), asc(contacts.id));
+    return db
+      .select(listFields)
+      .from(contacts)
+      .where(contactInGroup(groupId))
+      .orderBy(asc(contacts.name), asc(contacts.id));
   }
 
   const found = await db
@@ -138,7 +157,7 @@ export async function listContacts(query: string): Promise<ContactListItem[]> {
       bestNote: sql<string | null>`${bestNoteBody(search.words)}`,
     })
     .from(contacts)
-    .where(searchCondition(search))
+    .where(and(searchCondition(search), contactInGroup(groupId)))
     // People whose name has every word come first: searching "Маша" puts Маша above notes that mention her
     .orderBy(desc(nameHasAllWords(search.words)), asc(contacts.name), asc(contacts.id));
 
@@ -149,8 +168,8 @@ export async function listContacts(query: string): Promise<ContactListItem[]> {
   });
 }
 
-export async function countContacts() {
-  const [row] = await db.select({ value: count() }).from(contacts);
+export async function countContacts(groupId?: number | null) {
+  const [row] = await db.select({ value: count() }).from(contacts).where(contactInGroup(groupId));
   return row.value;
 }
 

@@ -1,10 +1,11 @@
 import "server-only";
 
-import { asc, desc, eq, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq, max, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { contacts, notes } from "@/db/schema";
 import type { ContactFrequency } from "@/lib/contact-frequency";
+import { contactInGroup } from "@/lib/groups";
 
 // Days are counted in one fixed zone: the server runs in UTC, where a day starts at 03:00 Moscow time,
 // and a note written at 01:00 would land on the previous day. Moscow has no daylight saving time.
@@ -44,8 +45,8 @@ export type DueContact = {
   overdueDays: number;
 };
 
-// Contacts whose due date has passed, the most overdue first
-export async function listDueContacts(): Promise<DueContact[]> {
+// Contacts whose due date has passed, the most overdue first; with a group, only the people in it
+export async function listDueContacts(groupId?: number | null): Promise<DueContact[]> {
   const rows = await db
     .select({
       id: contacts.id,
@@ -55,7 +56,7 @@ export async function listDueContacts(): Promise<DueContact[]> {
     })
     .from(contacts)
     // No frequency means overdueDays is NULL, and NULL > 0 is not true: those contacts are never listed
-    .where(sql`${overdueDays} > 0`)
+    .where(and(sql`${overdueDays} > 0`, contactInGroup(groupId)))
     .orderBy(desc(overdueDays), asc(contacts.name), asc(contacts.id));
 
   return rows.flatMap(({ contactFrequency, ...contact }) =>

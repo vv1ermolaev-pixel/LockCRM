@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { contactFrequencies, noContactFrequency } from "@/lib/contact-frequency";
+import { normalizeText } from "@/lib/search";
 
 // Empty optional fields are stored as NULL
 const optionalText = (max: number, tooLongMessage: string) =>
@@ -9,6 +10,13 @@ const optionalText = (max: number, tooLongMessage: string) =>
     .trim()
     .max(max, tooLongMessage)
     .transform((value) => (value === "" ? null : value));
+
+export const groupNameSchema = z.string().trim().min(1, "Укажите название").max(40, "Слишком длинно — до 40 символов");
+
+// Two names with the same key are the same group: case and "ё" do not count, as in the unique index on groups
+export function groupNameKey(name: string) {
+  return normalizeText(name.trim());
+}
 
 export const contactSchema = z.object({
   name: z.string().trim().min(1, "Укажите имя").max(200, "Имя слишком длинное — до 200 символов"),
@@ -26,6 +34,9 @@ export const contactSchema = z.object({
     .string()
     .transform((value) => (value === noContactFrequency || value === "" ? null : value))
     .pipe(z.enum(contactFrequencies, { error: "Выберите частоту из списка" }).nullable()),
+  // Checked groups, and names typed in "Новая группа" that are created on save
+  groupIds: z.array(z.coerce.number().int().positive()),
+  newGroups: z.array(groupNameSchema),
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;
@@ -47,6 +58,8 @@ export function readContactForm(formData: FormData) {
     phone: formData.get("phone") ?? "",
     email: formData.get("email") ?? "",
     contactFrequency: formData.get("contactFrequency") ?? "",
+    groupIds: formData.getAll("groupIds"),
+    newGroups: formData.getAll("newGroups"),
   });
 }
 
