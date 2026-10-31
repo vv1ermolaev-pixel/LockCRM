@@ -160,9 +160,5 @@ export async function getContact(id: number) {
 }
 
 export async function listNotes(contactId: number) {
-  return db
-    .select()
-    .from(notes)
-    .where(eq(notes.contactId, contactId))
-    .orderBy(desc(notes.createdAt), desc(notes.id));
+  return db.select().from(notes).where(eq(notes.contactId, contactId)).orderBy(desc(notes.createdAt), desc(notes.id));
 }
