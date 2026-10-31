@@ -116,8 +116,8 @@ export function DeleteContactButton({
           <DialogTitle>Удалить контакт?</DialogTitle>
           <DialogDescription>
             Контакт «{name}» удалится насовсем
-            {notesCount > 0 && ` вместе с ${pluralize(notesCount, ["заметкой", "заметками", "заметками"])}`}.
-            Вернуть не получится.
+            {notesCount > 0 && ` вместе с ${pluralize(notesCount, ["заметкой", "заметками", "заметками"])}`}. Вернуть не
+            получится.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

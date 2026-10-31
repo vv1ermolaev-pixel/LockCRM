@@ -75,7 +75,9 @@ test("search finds contacts by any field and shows why", async ({ page }) => {
     await expect(rows(page)).toHaveCount(1);
     await expect(row(page, foundId).locator("mark", { hasText: surname })).toBeVisible();
     await expect(row(page, foundId).locator("mark", { hasText: "Сомелье" })).toBeVisible();
-    await expect(row(page, foundId).locator("p", { hasText: /^(Заметка|Откуда знакомы|Телефон|Почта):/ })).toHaveCount(0);
+    await expect(row(page, foundId).locator("p", { hasText: /^(Заметка|Откуда знакомы|Телефон|Почта):/ })).toHaveCount(
+      0,
+    );
   });
 
   await test.step("a word from «Откуда знакомы» shows that line", async () => {

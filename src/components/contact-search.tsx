@@ -52,7 +52,10 @@ export function ContactSearch() {
 
   return (
     <div className="relative">
-      <SearchIcon className="pointer-events-none absolute top-1/2 left-4.5 size-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
+      <SearchIcon
+        className="pointer-events-none absolute top-1/2 left-4.5 size-5 -translate-y-1/2 text-foreground"
+        strokeWidth={2.5}
+      />
       <Input
         type="search"
         aria-label="Поиск по контактам"

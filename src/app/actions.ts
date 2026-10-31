@@ -13,9 +13,7 @@ import {
   type ContactFieldErrors,
 } from "@/lib/validation";
 
-export type ContactActionResult =
-  | { ok: true; id: number; name: string }
-  | { ok: false; errors: ContactFieldErrors };
+export type ContactActionResult = { ok: true; id: number; name: string } | { ok: false; errors: ContactFieldErrors };
 
 export type NoteActionResult = { ok: true } | { ok: false; error: string };
 
@@ -34,10 +32,7 @@ export async function createContact(formData: FormData): Promise<ContactActionRe
     return { ok: false, errors: toFieldErrors(parsed.error) };
   }
 
-  const [created] = await db
-    .insert(contacts)
-    .values(parsed.data)
-    .returning({ id: contacts.id, name: contacts.name });
+  const [created] = await db.insert(contacts).values(parsed.data).returning({ id: contacts.id, name: contacts.name });
 
   revalidatePath("/", "layout");
   return { ok: true, id: created.id, name: created.name };
@@ -110,7 +105,10 @@ export async function markContacted(contactId: number): Promise<MarkContactedRes
     if (!row) return null;
 
     // The database clock, like created_at and the due date calculation
-    await tx.update(contacts).set({ contactMarkedAt: sql`now()` }).where(eq(contacts.id, contactId));
+    await tx
+      .update(contacts)
+      .set({ contactMarkedAt: sql`now()` })
+      .where(eq(contacts.id, contactId));
     return row.markedAt?.toISOString() ?? null;
   });
 
