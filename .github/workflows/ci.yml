@@ -1,0 +1,108 @@
+name: CI
+
+# Every pull request into main: code checks, tests on a real database, image build.
+# Job names are required status checks in the main branch protection: rename them there too.
+on:
+  pull_request:
+    branches: [main]
+
+# A new push to the same PR cancels the run for the previous one
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # pnpm version comes from "packageManager" in package.json
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Types
+        run: pnpm typecheck
+
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # Throwaway database for this run only, same major version as on the server
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: lockcrm
+          # Reachable only from this job, so no password is needed
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lockcrm"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/lockcrm
+      E2E_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrations
+        run: pnpm db:migrate
+
+      - name: Build app
+        run: pnpm build
+
+      # Microsoft Edge is preinstalled on GitHub's Ubuntu runners; Playwright starts the built app itself
+      - name: Playwright
+        run: pnpm test:e2e
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Same Dockerfile as the deploy, but the image is only built, not pushed
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
