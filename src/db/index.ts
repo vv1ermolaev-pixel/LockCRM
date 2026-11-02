@@ -3,7 +3,10 @@ import "server-only";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { hideQueryValuesInErrors } from "./errors";
 import * as schema from "./schema";
+
+hideQueryValuesInErrors();
 
 type Database = PostgresJsDatabase<typeof schema>;
 
