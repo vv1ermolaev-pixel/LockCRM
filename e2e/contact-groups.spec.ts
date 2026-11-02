@@ -81,7 +81,14 @@ test("contact groups: create, add a contact, filter the list", async ({ page }) 
     await addContact(page, memberName, true);
 
     await expect(contactRows(page).filter({ hasText: memberName })).toContainText(groupName);
+    // Looked up by the unique name: past the first 20 of the list the row is not on the page.
+    // The search is cleared after, so the filter below starts from the whole list
+    const search = page.getByRole("searchbox", { name: "Поиск по контактам" });
+    await search.fill(outsiderName);
+    await expect(contactRows(page)).toHaveCount(1);
     await expect(contactRows(page).filter({ hasText: outsiderName })).not.toContainText(groupName);
+    await page.getByRole("button", { name: "Очистить поиск" }).click();
+    await expect(page).not.toHaveURL(/[?&]q=/);
   });
 
   await test.step("choose the group in the filter: only its people are listed", async () => {
@@ -145,6 +152,9 @@ test("contact groups: create, add a contact, filter the list", async ({ page }) 
   await test.step("Все clears the filter", async () => {
     await groupFilter(page).getByRole("link", { name: "Все", exact: true }).click();
     await expect(page).not.toHaveURL(/[?&]group=/);
+    // Both are in the whole list again. Looked up by the suffix of their names: past the first 20 they are not on the page
+    await page.getByRole("searchbox", { name: "Поиск по контактам" }).fill(suffix);
+    await expect(contactRows(page)).toHaveCount(2);
     await expect(contactRows(page).filter({ hasText: memberName })).toBeVisible();
     await expect(contactRows(page).filter({ hasText: outsiderName })).toBeVisible();
   });

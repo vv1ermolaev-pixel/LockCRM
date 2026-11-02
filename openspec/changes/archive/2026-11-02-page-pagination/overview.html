@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Показать ещё — обзор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+/* Values copied from src/app/tokens.css, same variable names */
+:root {
+  --color-pistachio: #cfeab9;
+  --color-pistachio-hover: #ddf1cc;
+  --color-ink: #0e1a0e;
+  --color-ink-hover: #1e321d;
+  --color-white: #ffffff;
+  --color-copy: #2b3d27;
+  --color-copy-muted: #4a5c45;
+  --color-butter: #f8edbf;
+  --color-butter-avatar: #f6e7a6;
+  --color-mint-50: #eff7e8;
+  --color-mint-100: #ddefcf;
+  --color-mint-line: #e3f1d8;
+  --color-sage-dot: #9db98c;
+  --color-mid-green: #6fb383;
+  --color-plate: rgb(255 255 255 / 0.5);
+  --color-rule: rgb(14 26 14 / 0.14);
+  --color-danger: #b3261e;
+  --color-group-peach: #f8d9bf;
+  --color-group-pink: #f6d0d8;
+  --color-group-blue: #cfe1f5;
+  --text-title: 30px;
+  --text-title-lg: 40px;
+  --text-heading: 22px;
+  --text-heading-lg: 26px;
+  --text-lead: 17px;
+  --text-13: 13px;
+  --text-15: 15px;
+  --radius-6: 6px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-18: 18px;
+  --radius-28: 28px;
+  --shadow-card: 0 8px 30px rgb(14 26 14 / 0.08);
+  --shadow-mock: 0 4px 14px rgb(14 26 14 / 0.06);
+  --font-manrope: "Manrope", system-ui, sans-serif;
+  --font-unbounded: "Unbounded", "Manrope", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--color-pistachio);
+  color: var(--color-ink);
+  font-family: var(--font-manrope);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 880px; margin: 0 auto; padding: 40px 16px 80px; }
+header.top { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--text-15); color: var(--color-copy-muted); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--color-ink); flex-shrink: 0; }
+h1 { font-family: var(--font-unbounded); font-weight: 600; font-size: var(--text-title-lg); line-height: 1.1; letter-spacing: -0.035em; margin: 16px 0 12px; }
+h2 { font-family: var(--font-unbounded); font-weight: 600; font-size: var(--text-heading-lg); letter-spacing: -0.025em; margin: 56px 0 16px; display: flex; align-items: baseline; gap: 12px; }
+h2 .num { font-size: 15px; background: var(--color-ink); color: var(--color-pistachio); border-radius: 999px; min-width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; align-self: center; }
+h3 { font-family: var(--font-unbounded); font-weight: 500; font-size: 17px; margin: 28px 0 10px; }
+p { margin: 8px 0; }
+.lead { font-size: var(--text-lead); color: var(--color-copy); max-width: 680px; }
+.muted { color: var(--color-copy-muted); }
+.small { font-size: 14px; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 0.86em; background: var(--color-mint-50); padding: 1px 5px; border-radius: var(--radius-6); }
+ul.points, ol.points { padding-left: 20px; margin: 8px 0; }
+ul.points li, ol.points li { margin: 4px 0; }
+.card { background: var(--color-white); border-radius: var(--radius-28); box-shadow: var(--shadow-card); padding: 20px 24px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--color-white); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-mock); }
+.chip.wait { background: var(--color-butter); }
+
+/* Screen sketches */
+.screens { display: grid; gap: 28px; }
+.screen-title { font-family: var(--font-unbounded); font-size: 16px; font-weight: 500; margin: 0 0 8px; }
+.device { background: var(--color-pistachio-hover); border: 1px solid var(--color-rule); border-radius: var(--radius-18); padding: 16px; }
+.app-h { font-family: var(--font-unbounded); font-weight: 600; font-size: 22px; letter-spacing: -0.03em; }
+.app-h span { background: var(--color-butter); border-radius: var(--radius-12); padding: 0 10px; }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px; margin-bottom: 12px; }
+.btn-dark { background: var(--color-ink); color: var(--color-pistachio); border-radius: var(--radius-14); padding: 7px 14px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.pill { border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 700; background: var(--color-plate); }
+.pill.on { background: var(--color-ink); color: var(--color-pistachio); }
+.due { background: var(--color-white); border-radius: var(--radius-16); padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
+.due b { font-family: var(--font-unbounded); font-weight: 500; }
+.search { background: var(--color-white); border-radius: var(--radius-14); padding: 9px 14px; color: var(--color-copy-muted); font-size: 14px; margin-bottom: 10px; box-shadow: var(--shadow-mock); }
+.list { background: var(--color-white); border-radius: var(--radius-16); overflow: hidden; box-shadow: var(--shadow-card); }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--color-mint-line); }
+.row:first-child { border-top: 0; }
+.row .av { width: 30px; height: 30px; border-radius: 50%; background: var(--color-butter-avatar); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.row .who { flex: 1; min-width: 0; }
+.row .name { font-weight: 700; font-size: 15px; }
+.row .meta { font-size: 13px; color: var(--color-copy-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row.fresh { background: var(--color-butter); }
+.tag { display: inline-block; background: var(--color-ink); color: var(--color-pistachio); font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 1px; }
+.gap-row { text-align: center; font-size: 13px; color: var(--color-copy-muted); padding: 6px; border-top: 1px solid var(--color-mint-line); }
+.more-btn { display: block; text-align: center; margin-top: 10px; padding: 10px; border-radius: var(--radius-14); border: 1px solid var(--color-rule); background: var(--color-white); font-weight: 700; font-size: 15px; }
+.more-btn.busy { opacity: 0.6; }
+.is-new { position: relative; outline: 2px dashed var(--color-ink); outline-offset: 4px; border-radius: var(--radius-12); }
+.new-tag { position: absolute; top: -13px; right: 10px; background: var(--color-ink); color: var(--color-pistachio); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; z-index: 1; }
+.callouts { margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: var(--color-copy); }
+.callouts li { margin: 3px 0; }
+.addr { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: var(--color-white); border-radius: var(--radius-10); padding: 5px 10px; margin-bottom: 12px; color: var(--color-copy-muted); overflow-wrap: anywhere; }
+.addr b { color: var(--color-ink); }
+.back { display: inline-block; background: var(--color-plate); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+
+/* Rules */
+.rules { display: grid; gap: 12px; }
+.rule { background: var(--color-white); border-radius: var(--radius-18); padding: 14px 18px; box-shadow: var(--shadow-mock); }
+.rule .h { font-weight: 800; margin-bottom: 4px; }
+.example { font-size: 14px; color: var(--color-copy); background: var(--color-mint-50); border-left: 3px solid var(--color-mid-green); padding: 6px 10px; margin-top: 8px; border-radius: 0 var(--radius-10) var(--radius-10) 0; }
+
+/* Checklist */
+.check-group { margin-bottom: 18px; }
+.check { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: var(--color-white); border-radius: var(--radius-14); margin: 6px 0; cursor: pointer; }
+.check input { margin-top: 5px; accent-color: var(--color-ink); width: 16px; height: 16px; flex-shrink: 0; }
+.check .sc { font-weight: 800; }
+.check .st { font-size: 14px; color: var(--color-copy); }
+.check .st .arrow { font-weight: 800; }
+.check .auto { font-size: 12px; color: var(--color-copy-muted); margin-left: 6px; font-weight: 600; background: var(--color-mint-50); border-radius: 999px; padding: 1px 8px; }
+.prep { background: var(--color-butter); border-radius: var(--radius-16); padding: 12px 16px; font-size: 14px; color: var(--color-copy); }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.box h3 { margin-top: 0; }
+footer { margin-top: 64px; font-size: 13px; color: var(--color-copy-muted); }
+
+@media (max-width: 720px) {
+  h1 { font-size: var(--text-title); }
+  h2 { font-size: var(--text-heading); }
+  .two { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="top"><span class="dot"></span>Личная CRM · обзор фичи</header>
+<h1>Показать ещё</h1>
+<p class="lead">Главная больше не выводит все контакты разом. Сначала видно 20, остальные — по кнопке «Показать ещё». Число показанных хранится в адресе страницы, а только что добавленный контакт стоит первой строкой.</p>
+<div class="chips">
+  <span class="chip wait">Спроектирована, ещё не сделана</span>
+  <span class="chip">Задачи: 0 из 7</span>
+  <span class="chip">Автотестов пока нет — запланированы на каждый из 31 сценария</span>
+  <span class="chip">База данных не меняется</span>
+  <span class="chip">Изменение <code>page-pagination</code>, ветка <code>page-pagination</code></span>
+</div>
+
+<!-- 1 -->
+<h2><span class="num">1</span>Коротко</h2>
+<ul class="points">
+  <li>Общий список на главной показывает по 20 контактов по алфавиту. Под списком — «Показать ещё»: добавляет следующие 20.</li>
+  <li>Так же работают результаты поиска и список выбранной группы.</li>
+  <li>Блок «Пора связаться» не делится на части: в нём по-прежнему все, кому пора.</li>
+  <li>Статус: <b>спроектирована</b>. Требования, план и задачи готовы, код ещё не писали. Отмечено задач: 0 из 7. Автотесты (программы, которые сами проходят сценарий и сверяют результат) запланированы на все 31 сценарий: часть проверяет данные напрямую, часть проходит сценарий в настоящем браузере.</li>
+</ul>
+
+<!-- 2 -->
+<h2><span class="num">2</span>Что появится на экранах</h2>
+<p class="muted small">Наброски, не точные макеты. Новое обведено пунктиром. Имена и числа выдуманы.</p>
+
+<div class="screens">
+  <div>
+    <p class="screen-title">Главная — первые 20</p>
+    <div class="device">
+      <div class="addr">адрес: personal-crm/</div>
+      <div class="head">
+        <div>
+          <div class="app-h"><span>Контакты</span></div>
+          <div class="is-new" style="display:inline-block;margin-top:10px;padding:0 4px"><span class="new-tag">считает всех</span><span class="muted">145 контактов</span></div>
+        </div>
+        <span class="btn-dark">Добавить контакт</span>
+      </div>
+      <div class="filter"><span class="pill on">Все</span><span class="pill">Семья</span><span class="pill">Друзья</span><span class="pill">Теннис</span><span class="pill">Группы</span></div>
+      <div class="due"><b>Пора связаться</b> · все 25, без «Показать ещё» — как сейчас</div>
+      <div class="search">🔍 Имя, телефон, почта, заметка…</div>
+      <div class="list">
+        <div class="row"><span class="av">АБ</span><div class="who"><div class="name">Алексей Белов</div><div class="meta">Сосед по даче</div></div></div>
+        <div class="row"><span class="av">АВ</span><div class="who"><div class="name">Алина Васильева</div><div class="meta">Учились вместе</div></div></div>
+        <div class="row"><span class="av">АС</span><div class="who"><div class="name">Анна Смирнова</div><div class="meta">Дизайнер интерфейсов</div></div></div>
+        <div class="gap-row">… всего 20 строк …</div>
+        <div class="row"><span class="av">ГК</span><div class="who"><div class="name">Глеб Козлов</div><div class="meta">Тренер по теннису</div></div></div>
+      </div>
+      <div class="is-new" style="margin-top:18px"><span class="new-tag">новое</span>
+        <div class="more-btn" style="margin-top:0">Показать ещё</div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>«Показать ещё» добавляет следующие 20 под уже показанными. Страница не прыгает и не перезагружается целиком.</li>
+      <li>Показаны все — кнопки нет. Контактов ровно 20 или меньше — кнопки нет с самого начала.</li>
+      <li>Число под заголовком — сколько людей всего, а не сколько строк видно.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Главная — после двух нажатий, кнопка грузит следующую часть</p>
+    <div class="device">
+      <div class="addr is-new" style="outline-offset:2px">адрес: personal-crm/<b>?page=3</b><span class="new-tag">новое</span></div>
+      <div class="list">
+        <div class="row"><span class="av">АБ</span><div class="who"><div class="name">Алексей Белов</div><div class="meta">Сосед по даче</div></div></div>
+        <div class="gap-row">… 60 строк: первые 20, потом ещё 20 и ещё 20 …</div>
+        <div class="row"><span class="av">МО</span><div class="who"><div class="name">Мария Орлова</div><div class="meta">Коллега по прошлой работе</div></div></div>
+      </div>
+      <div class="is-new" style="margin-top:18px"><span class="new-tag">пока грузится</span>
+        <div class="more-btn busy" style="margin-top:0">⟳ Показать ещё</div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Пока следующие 20 загружаются, кнопка бледнеет, крутит значок и не реагирует на нажатия.</li>
+      <li>В адресе видно, сколько частей открыто. Обновили страницу, вернулись «Назад» из карточки, открыли ссылку в другом браузере — снова 60 строк.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Главная — сразу после добавления контакта</p>
+    <div class="device">
+      <div class="addr">адрес: personal-crm/?added=1031</div>
+      <div class="head"><div><div class="app-h"><span>Контакты</span></div><div class="muted" style="margin-top:10px">146 контактов</div></div></div>
+      <div class="is-new" style="margin-top:14px"><span class="new-tag">первой строкой</span>
+        <div class="list">
+          <div class="row fresh"><span class="av">ЯЮ</span><div class="who"><div class="name">Яна Юдина <span class="tag">Новый</span></div><div class="meta">Познакомились в походе</div></div></div>
+          <div class="row"><span class="av">АБ</span><div class="who"><div class="name">Алексей Белов</div><div class="meta">Сосед по даче</div></div></div>
+          <div class="row"><span class="av">АВ</span><div class="who"><div class="name">Алина Васильева</div><div class="meta">Учились вместе</div></div></div>
+          <div class="gap-row">… ещё 18 по алфавиту, всего 21 строка …</div>
+        </div>
+      </div>
+      <div class="more-btn">Показать ещё</div>
+    </div>
+    <ul class="callouts">
+      <li>Сейчас новый контакт подсвечивается на своём месте по алфавиту. Теперь он поднят наверх, а ниже не повторяется — даже после «Показать ещё».</li>
+      <li>На своё место по алфавиту он встаёт после поиска, выбора группы или кнопки «Все контакты» на его карточке.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Карточка контакта</p>
+    <div class="device">
+      <div class="is-new" style="display:inline-block;padding:2px"><span class="new-tag">возвращает туда же</span><span class="back" style="margin:0">← Все контакты</span></div>
+      <div class="card" style="box-shadow:none;margin-top:14px;padding:16px 18px">
+        <div style="font-family:var(--font-unbounded);font-size:20px;font-weight:600">Мария Орлова</div>
+        <div class="muted small">Коллега по прошлой работе</div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>На карточке внешне ничего не меняется. «Все контакты» теперь возвращает не только к выбранной группе, как сейчас, но и к тому же числу строк.</li>
+      <li>Если карточку открыли из результатов поиска, «Все контакты», как и сейчас, ведёт в общий список без запроса — к первым 20.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 3 -->
+<h2><span class="num">3</span>Как это работает</h2>
+<div class="rules">
+  <div class="rule">
+    <div class="h">Части по 20, по алфавиту</div>
+    <p>Сначала видно первые 20. Каждое нажатие «Показать ещё» добавляет следующие 20 в конец. Порядок прежний: весь список и группа — по алфавиту; поиск — сначала те, у кого все слова запроса в имени, потом остальные по алфавиту.</p>
+    <div class="example">Контактов 45: сначала 20 → нажали → 40 → нажали → 45, кнопки больше нет.</div>
+  </div>
+  <div class="rule">
+    <div class="h">Подзаголовок считает всех</div>
+    <p>Число под «Контакты» не зависит от того, сколько строк видно.</p>
+    <div class="example">Видно 20 строк, а под заголовком «145 контактов». В группе — «В группе «Теннис» — 52 контакта». При поиске — «Найдено: 37 из 145».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Новый список — снова первые 20</div>
+    <p>Выбрали или сняли группу, начали, поменяли или очистили поиск — показываются первые 20 нового списка.</p>
+    <div class="example">Открыто 60 контактов, нажали «Теннис» → первые 20 людей из «Теннис».</div>
+  </div>
+  <div class="rule">
+    <div class="h">Сколько показано — в адресе</div>
+    <p>В адресе страницы появляется <code>?page=3</code> — «открыто три части, то есть 60 строк». Поэтому обновление страницы, «Назад» из карточки, «Все контакты» и ссылка в другом браузере показывают столько же. Нажатия «Показать ещё» не добавляют шагов в историю: «Назад» в браузере сразу уводит с главной.</p>
+    <div class="example">В адресе ерунда (<code>0</code>, <code>-3</code>, <code>abc</code>) → первые 20, без ошибки. В адресе больше, чем есть людей (45 контактов, а открыто 10 частей) → все 45, кнопки нет.</div>
+  </div>
+  <div class="rule">
+    <div class="h">Новый контакт — первой строкой</div>
+    <p>После «Добавить контакт» новый человек стоит сверху с подсветкой и меткой «Новый». В двадцатку он не входит, поэтому на первой странице 21 строка. Ниже он не повторяется. Обновили страницу — он всё ещё сверху.</p>
+    <div class="example">Добавили «Яна Юдина» — по алфавиту она 151-я. Видно: Яна, потом 20 человек с «А», потом кнопка.</div>
+  </div>
+  <div class="rule">
+    <div class="h">Кнопка во время загрузки и с клавиатуры</div>
+    <p>Пока часть грузится, кнопка не реагирует — двойной клик не пропустит 20 человек. С клавиатуры фокус (рамка, показывающая, какой элемент сейчас выбран) остаётся на кнопке. Когда загрузилась последняя часть и кнопка пропала, фокус переходит на первого из только что показанных людей.</p>
+  </div>
+  <div class="rule">
+    <div class="h">«Пора связаться» не делится</div>
+    <p>В блоке все, кому пора, сколько бы их ни было. «Показать ещё» есть только у общего списка и на блок не влияет. Человек из блока по-прежнему есть и в общем списке на своём месте — если он дальше первых 20, его видно после «Показать ещё».</p>
+  </div>
+</div>
+
+<!-- 5 (no data model changes, section 4 skipped) -->
+<h2><span class="num">4</span>Как проверить руками</h2>
+<div class="prep">
+  <b>Подготовка.</b> Запустите приложение локально (<code>pnpm dev</code>, см. README). Нужно больше 20 контактов: в пустую локальную базу <code>pnpm db:seed</code> добавит 1000 правдоподобных. Если контакты уже есть, команда ничего не делает и ничего не стирает.
+  Для проверок с группой выберите группу, где людей больше 20. Галочки на этой странице только для удобства и не сохраняются.
+  Сейчас фича ещё не сделана: проверять можно после реализации.
+</div>
+
+<div class="check-group">
+  <h3>Части по 20</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Первые 20<span class="auto">автотест запланирован</span></div><div class="st">Открыть главную <span class="arrow">→</span> 20 контактов по алфавиту, под списком «Показать ещё».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Показать ещё<span class="auto">автотест запланирован</span></div><div class="st">Прокрутить до кнопки, нажать <span class="arrow">→</span> 40 строк, прежние 20 на местах, новые ниже. Страница осталась там же, кнопка снова под списком.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Последняя часть<span class="auto">автотест запланирован</span></div><div class="st">Выбрать группу, где, например, 45 человек, нажать «Показать ещё» два раза <span class="arrow">→</span> все 45, кнопки нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ровно 20<span class="auto">автотест запланирован</span></div><div class="st">Группа ровно на 20 человек <span class="arrow">→</span> все 20, кнопки нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Нет контактов<span class="auto">автотест запланирован</span></div><div class="st">Пустая база <span class="arrow">→</span> «Пока нет ни одного контакта», кнопки нет. Руками — только на пустой базе; обычно достаточно автотеста.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">С клавиатуры<span class="auto">автотест запланирован</span></div><div class="st">Клавишей Tab дойти до «Показать ещё», нажать Enter <span class="arrow">→</span> появились следующие 20, рамка фокуса по-прежнему на кнопке.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">С клавиатуры, последняя часть<span class="auto">автотест запланирован</span></div><div class="st">В группе на 45 человек показано 40, Enter на кнопке <span class="arrow">→</span> кнопки нет, рамка фокуса на 41-м человеке.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Двойное нажатие<span class="auto">автотест запланирован</span></div><div class="st">При первых 20 быстро дважды щёлкнуть «Показать ещё» <span class="arrow">→</span> 40 строк, не 60.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Подзаголовок</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Весь список<span class="auto">автотест запланирован</span></div><div class="st">Видно 20 строк <span class="arrow">→</span> под заголовком число всех контактов, например «1 000 контактов».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Выбрана группа<span class="auto">автотест запланирован</span></div><div class="st">Выбрать большую группу <span class="arrow">→</span> «В группе «…» — N контактов», где N — все люди группы, а не 20.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Поиск<span class="auto">автотест запланирован</span></div><div class="st">Найти что-то частое, например «Иван» <span class="arrow">→</span> «Найдено: N из M», где N — все найденные, а строк видно 20.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Поиск и группа частями</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Результаты поиска<span class="auto">автотест запланирован</span></div><div class="st">Поиск, где найдено больше 20 <span class="arrow">→</span> 20 найденных и кнопка. Нажимать, пока кнопка не исчезнет <span class="arrow">→</span> видны все найденные.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Список группы<span class="auto">автотест запланирован</span></div><div class="st">Выбрать группу больше чем на 20 человек <span class="arrow">→</span> первые 20 её людей по алфавиту и кнопка.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Снова первые 20</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Сменили группу<span class="auto">автотест запланирован</span></div><div class="st">Открыть 60 строк всего списка → нажать группу <span class="arrow">→</span> первые 20 людей группы.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Сняли группу<span class="auto">автотест запланирован</span></div><div class="st">В группе открыть 40 → нажать «Все» <span class="arrow">→</span> первые 20 всего списка.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Начали поиск<span class="auto">автотест запланирован</span></div><div class="st">Открыть 60 → ввести «Иван» <span class="arrow">→</span> первые 20 найденных.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Очистили поиск<span class="auto">автотест запланирован</span></div><div class="st">В результатах поиска открыть 40 → очистить поиск крестиком <span class="arrow">→</span> первые 20 всего списка.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Сколько показано — в адресе</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Обновление страницы<span class="auto">автотест запланирован</span></div><div class="st">Открыть 60 → обновить страницу (F5) <span class="arrow">→</span> снова 60.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Назад из карточки<span class="auto">автотест запланирован</span></div><div class="st">Открыть 60 → открыть карточку одного из последних → «Все контакты» <span class="arrow">→</span> снова 60. Повторить с кнопкой «Назад» в браузере — то же.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Назад из карточки при группе<span class="auto">автотест запланирован</span></div><div class="st">Выбрать группу, открыть 40 → карточка → «Все контакты» <span class="arrow">→</span> та же группа выбрана, 40 строк.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Скопированная ссылка<span class="auto">автотест запланирован</span></div><div class="st">Открыть 60 → скопировать адрес → открыть его в другом браузере <span class="arrow">→</span> там тоже 60.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">«Назад» в браузере не убирает строки<span class="auto">автотест запланирован</span></div><div class="st">Прийти на главную с другой страницы → дважды «Показать ещё» → «Назад» в браузере <span class="arrow">→</span> браузер ушёл на предыдущую страницу, а не к 40 или 20 строкам.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Неверное значение в адресе<span class="auto">автотест запланирован</span></div><div class="st">Вписать в адрес <code>?page=abc</code>, потом <code>?page=0</code>, <code>?page=-3</code> <span class="arrow">→</span> каждый раз первые 20, никакой ошибки.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Больше, чем есть<span class="auto">автотест запланирован</span></div><div class="st">Выбрать группу, вписать в адрес <code>&amp;page=100</code> <span class="arrow">→</span> видны все люди группы, кнопки нет.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Новый контакт</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новый контакт далеко по алфавиту<span class="auto">автотест запланирован</span></div><div class="st">Добавить «Яна Юдина» <span class="arrow">→</span> она первой строкой с подсветкой и «Новый», под ней первые 20 по алфавиту, кнопка есть.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новый контакт в первых 20<span class="auto">автотест запланирован</span></div><div class="st">Добавить «Аарон Абрамов» (точно в начале алфавита) <span class="arrow">→</span> он первой строкой с «Новый», ниже 20 других, и среди них его нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Показать ещё при новом контакте<span class="auto">автотест запланирован</span></div><div class="st">Сразу после добавления нажать «Показать ещё» <span class="arrow">→</span> новый по-прежнему первый с «Новый», ниже 40 других, повтора нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Обновление страницы при новом контакте<span class="auto">автотест запланирован</span></div><div class="st">Сразу после добавления обновить страницу <span class="arrow">→</span> новый по-прежнему первый с «Новый».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новый контакт встаёт на место<span class="auto">автотест запланирован</span></div><div class="st">После добавления: начать поиск, или выбрать группу, или открыть его карточку и нажать «Все контакты» <span class="arrow">→</span> сверху его нет, метки «Новый» нет, он на своём месте по алфавиту.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Блок «Пора связаться»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Блок не делится на части<span class="auto">автотест запланирован</span></div><div class="st">На демо-данных посчитать строки блока <span class="arrow">→</span> там все, кому пора (может быть больше 20), у блока нет «Показать ещё». Нажать «Показать ещё» у списка <span class="arrow">→</span> блок не изменился.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Контакт остаётся в общем списке<span class="auto">автотест запланирован</span></div><div class="st">Взять человека из блока с фамилией дальше по алфавиту → нажимать «Показать ещё», пока он не появится <span class="arrow">→</span> он есть в общем списке на своём месте.</div></div></label>
+</div>
+
+<!-- 6 -->
+<h2><span class="num">5</span>Что агент решил сам</h2>
+<div class="two">
+  <div class="card box">
+    <h3>Продуктовые — стоит просмотреть</h3>
+    <p class="small muted">Вы решили: по 20, кнопка «Показать ещё», только для общего списка, поиск тоже частями, новый контакт первым, число показанных — в адресе. Остальное ниже додумал агент.</p>
+    <ul class="points small">
+      <li>Нажатия «Показать ещё» не добавляют шагов в историю браузера: «Назад» уводит с главной, а не убирает по 20.</li>
+      <li>Новый контакт не входит в двадцатку: на первой странице 21 строка.</li>
+      <li>После обновления страницы новый контакт остаётся сверху. На место встаёт после поиска, группы или «Все контакты».</li>
+      <li>Новый контакт поднимается наверх только во всём списке без поиска — туда ведёт добавление.</li>
+      <li>Неверное число в адресе — первые 20; больше, чем есть, — все.</li>
+      <li>Пока часть грузится, кнопка бледнеет и не нажимается.</li>
+      <li>С клавиатуры фокус остаётся на кнопке, а после последней части — переходит на первого из новых людей.</li>
+      <li>Из карточки, открытой из результатов поиска, «Все контакты» ведёт к первым 20 всего списка: поиск и сейчас не сохраняется.</li>
+    </ul>
+  </div>
+  <div class="card box">
+    <h3>Технические — на экраны не влияют</h3>
+    <ul class="points small">
+      <li>Сервер каждый раз отдаёт строки с начала до нужного числа, а не только новые 20. Так адрес — единственный источник правды, и при чужих изменениях между нажатиями ничего не теряется и не повторяется.</li>
+      <li>Чтобы узнать, есть ли ещё, сервер берёт на одну строку больше, чем показывает.</li>
+      <li>Число найденных при поиске считает база отдельным запросом, а не по показанным строкам.</li>
+      <li>Огромное число в адресе ограничено сверху: запрос не падает, а в журнал (лог) не попадают личные данные.</li>
+      <li>Кнопка — готовая кнопка приложения, новых цветов и библиотек нет. База и миграции не меняются, откат на прошлую версию безопасен.</li>
+      <li>Старые автотесты, которые ждали на главной все контакты, переписываются под новое правило, а не удаляются.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 7 -->
+<h2><span class="num">6</span>Что осталось неясным</h2>
+<div class="card">
+  <p><b>Открытых вопросов нет.</b></p>
+  <p class="small">Критерий успеха в <code>specs/01-продуктовая-идея.md</code> по вашему согласию изменён: «открыл → видно список контактов, остальные — по кнопке «Показать ещё»».</p>
+</div>
+
+<footer>Собрано по <code>openspec/changes/page-pagination/</code> (proposal, specs, design, tasks). Кода фичи ещё нет. Раздел про модель данных пропущен: база не меняется. Страница только показывает, ничего не меняет.</footer>
+</div>
+</body>
+</html>

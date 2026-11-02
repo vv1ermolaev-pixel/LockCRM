@@ -19,6 +19,13 @@ function contactRows(page: Page) {
   return page.locator('li[id^="contact-"]');
 }
 
+// The home list shows the first 20 by name; the rest are behind «Показать ещё»
+async function expectFirstPart(page: Page) {
+  const total = await countContactsInDb();
+  await expect(contactRows(page)).toHaveCount(Math.min(20, total));
+  await expect(page.getByRole("button", { name: "Показать ещё" })).toHaveCount(total > 20 ? 1 : 0);
+}
+
 test.beforeAll(async () => {
   const [contact] = await sql<{ id: number }[]>`
     insert into contacts (name, about) values (${contactName}, 'Тестовый контакт для удаления') returning id
@@ -59,8 +66,16 @@ test("delete a contact from its card", async ({ page }) => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText(`Контакт «${contactName}» удалён`)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Контакты" })).toBeVisible();
-    await expect(contactRows(page).filter({ hasText: contactName })).toHaveCount(0);
-    await expect(contactRows(page)).toHaveCount(await countContactsInDb());
+    await expectFirstPart(page);
+    // Gone from the list. Looked up by the unique name: a row past the first 20 is not on the page anyway.
+    // In an empty database (as in CI) there is no search, and the list says there is nobody
+    if ((await countContactsInDb()) === 0) {
+      await expect(page.getByText("Пока нет ни одного контакта")).toBeVisible();
+    } else {
+      await page.getByRole("searchbox", { name: "Поиск по контактам" }).fill(contactName);
+      await expect(page.getByText(`Никого не нашли по запросу «${contactName}»`)).toBeVisible();
+      await expect(contactRows(page)).toHaveCount(0);
+    }
   });
 
   await test.step("the contact and its notes are gone from the database", async () => {

@@ -50,7 +50,7 @@ const screenReaderInstructions = {
 };
 
 // The chosen group lives in the address (?group=<id>), so it survives a reload, "Back" and a copied link.
-// The links keep the search query and drop the "new contact" highlight
+// The links keep the search query and drop the "new contact" highlight and the number of parts shown
 export function GroupFilter({ groups, selectedId }: { groups: GroupListItem[]; selectedId: number | null }) {
   const searchParams = useSearchParams();
   const listRef = useRef<HTMLUListElement>(null);
@@ -93,6 +93,8 @@ export function GroupFilter({ groups, selectedId }: { groups: GroupListItem[]; s
   function hrefFor(groupId: number | null) {
     const params = new URLSearchParams(searchParams);
     params.delete("added");
+    // Another list starts from its first part
+    params.delete("page");
     if (groupId === null) {
       params.delete("group");
     } else {

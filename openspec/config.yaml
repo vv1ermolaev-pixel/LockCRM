@@ -15,7 +15,6 @@ context: |
 rules:
   proposal:
     - List product decisions that agent made on its own and open questions for the owner
-    - Keep proposals under 500 words
     - Always state what is out of scope
   specs:
     - Every scenario must be checkable by hand in the browser by the owner

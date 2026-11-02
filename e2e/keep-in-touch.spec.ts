@@ -444,11 +444,15 @@ test.describe("«Пора связаться» block", () => {
       await expect(dueRow(page, contact.name)).toHaveCount(0);
     }
 
-    // Everyone is still in the main list, and the block adds no rows to it
+    // The block adds no rows to the main list: it shows the first 20 as always, the rest behind «Показать ещё»
+    const total = await countContactsInDb();
+    await expect(contactRows(page)).toHaveCount(Math.min(20, total));
+    await expect(page.getByRole("button", { name: "Показать ещё" })).toHaveCount(total > 20 ? 1 : 0);
+    // Everyone is still in the main list. Found by the unique name: a row past the first 20 is not on the page
     for (const contact of [overdue, notYet, onDueDay, noFrequency]) {
+      await page.getByRole("searchbox", { name: "Поиск по контактам" }).fill(contact.name);
       await expect(page.locator(`#contact-${contact.id}`)).toHaveCount(1);
     }
-    await expect(contactRows(page)).toHaveCount(await countContactsInDb());
   });
 
   test("a click on the name opens the card", async ({ page }) => {
