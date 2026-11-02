@@ -13,6 +13,8 @@ services:
   db:
     image: postgres:18
     restart: unless-stopped
+    # Errors in the log without DETAIL: for a rejected row Postgres puts the whole row there, with the contact's data
+    command: ["postgres", "-c", "log_error_verbosity=terse"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}

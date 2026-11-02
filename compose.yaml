@@ -4,6 +4,8 @@ services:
   postgres:
     image: postgres:18
     restart: unless-stopped
+    # Same as on the server (deploy/compose.yaml): errors in the log without DETAIL, which holds row data
+    command: ["postgres", "-c", "log_error_verbosity=terse"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
