@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, inArray, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { QueryBuilder } from "drizzle-orm/pg-core";
 
 import { db } from "@/db";
@@ -141,37 +141,78 @@ const listFields = {
   groupIds: sql<number[]>`${contactGroupIds}`,
 };
 
-// With a group, only the people in it
-export async function listContacts(query: string, groupId?: number | null): Promise<ContactListItem[]> {
+export type ContactListPart = { contacts: ContactListItem[]; hasMore: boolean };
+
+// The first `limit` rows of the list (all without a limit), and whether there are more.
+// With a group, only the people in it; `excludeId` leaves one contact out (the new one shown above the list).
+// The order ends with the id, so it is stable and parts read one after another never overlap
+export async function listFirstContacts(
+  query: string,
+  groupId?: number | null,
+  { limit, excludeId }: { limit?: number; excludeId?: number | null } = {},
+): Promise<ContactListPart> {
   const search = parseSearchQuery(query);
+  const notExcluded = excludeId == null ? undefined : ne(contacts.id, excludeId);
+  // One row more than shown answers "are there more" without a separate count
+  const take = limit === undefined ? undefined : limit + 1;
+  const trim = <T>(rows: T[]) => ({
+    rows: limit === undefined ? rows : rows.slice(0, limit),
+    hasMore: limit !== undefined && rows.length > limit,
+  });
+
   if (search.words.length === 0) {
-    return db
+    const listed = db
       .select(listFields)
       .from(contacts)
-      .where(contactInGroup(groupId))
-      .orderBy(asc(contacts.name), asc(contacts.id));
+      .where(and(contactInGroup(groupId), notExcluded))
+      .orderBy(asc(contacts.name), asc(contacts.id))
+      .$dynamic();
+    const { rows, hasMore } = trim(await (take === undefined ? listed : listed.limit(take)));
+    return { contacts: rows, hasMore };
   }
 
-  const found = await db
+  const found = db
     .select({
       ...listFields,
       howWeMet: contacts.howWeMet,
       bestNote: sql<string | null>`${bestNoteBody(search.words)}`,
     })
     .from(contacts)
-    .where(and(searchCondition(search), contactInGroup(groupId)))
+    .where(and(searchCondition(search), contactInGroup(groupId), notExcluded))
     // People whose name has every word come first: searching "Маша" puts Маша above notes that mention her
-    .orderBy(desc(nameHasAllWords(search.words)), asc(contacts.name), asc(contacts.id));
+    .orderBy(desc(nameHasAllWords(search.words)), asc(contacts.name), asc(contacts.id))
+    .$dynamic();
+  const { rows, hasMore } = trim(await (take === undefined ? found : found.limit(take)));
 
-  // Notes and "how we met" stay on the server: the list gets one short line at most
-  return found.map(({ howWeMet, bestNote, ...contact }) => {
-    const match = explainMatch({ ...contact, howWeMet, bestNote }, search);
-    return match ? { ...contact, match } : contact;
-  });
+  // Notes and "how we met" stay on the server: the list gets one short line at most.
+  // Explained after trimming, only for the rows that are shown
+  return {
+    contacts: rows.map(({ howWeMet, bestNote, ...contact }) => {
+      const match = explainMatch({ ...contact, howWeMet, bestNote }, search);
+      return match ? { ...contact, match } : contact;
+    }),
+    hasMore,
+  };
 }
 
-export async function countContacts(groupId?: number | null) {
-  const [row] = await db.select({ value: count() }).from(contacts).where(contactInGroup(groupId));
+// One contact as a row of the list: the new contact shown above it. Undefined when it is gone
+export async function getListContact(id: number): Promise<ContactListItem | undefined> {
+  const [contact] = await db.select(listFields).from(contacts).where(eq(contacts.id, id));
+  return contact;
+}
+
+// The whole list: with a group, only the people in it
+export async function listContacts(query: string, groupId?: number | null): Promise<ContactListItem[]> {
+  return (await listFirstContacts(query, groupId)).contacts;
+}
+
+// With a query, only the people it finds: the same condition as the list, so "Найдено: N" counts the whole result
+export async function countContacts(groupId?: number | null, query = "") {
+  const search = parseSearchQuery(query);
+  const [row] = await db
+    .select({ value: count() })
+    .from(contacts)
+    .where(and(search.words.length > 0 ? searchCondition(search) : undefined, contactInGroup(groupId)));
   return row.value;
 }
 

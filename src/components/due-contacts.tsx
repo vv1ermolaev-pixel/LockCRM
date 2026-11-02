@@ -20,6 +20,7 @@ import { contactFrequencyLabels } from "@/lib/contact-frequency";
 import { contactForms, formatOverdue, pluralize } from "@/lib/format";
 import type { DueContact } from "@/lib/keep-in-touch";
 import { UNDO_WINDOW_MS } from "@/lib/mark-contacted";
+import { contactHref } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 // Keep in step with the collapse transition (duration-300) in DueRow
@@ -41,8 +42,17 @@ type Row = { contact: DueContact; state: RowState };
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Rows get no `id` on purpose: the tests count the rows of the main list by `li[id^="contact-"]`
-// `groupId` is the group chosen in the filter: the card's "Все контакты" brings it back
-export function DueContacts({ contacts, groupId }: { contacts: DueContact[]; groupId: number | null }) {
+// `groupId` is the group chosen in the filter and `page` the parts of the list shown: the card's "Все контакты"
+// brings both back
+export function DueContacts({
+  contacts,
+  groupId,
+  page,
+}: {
+  contacts: DueContact[];
+  groupId: number | null;
+  page: number;
+}) {
   const [rows, setRows] = useState<Row[]>(() => contacts.map((contact) => ({ contact, state: { kind: "due" } })));
   // One timer per row, so several marks in a row do not disturb each other
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -134,7 +144,7 @@ export function DueContacts({ contacts, groupId }: { contacts: DueContact[]; gro
             ) : (
               <div className="flex min-h-18 items-center gap-2.5 py-3 pr-3 pl-4 sm:min-h-19 sm:gap-3 sm:py-3.5 sm:pr-4 sm:pl-5">
                 <Link
-                  href={`/contacts/${contact.id}${groupId ? `?group=${groupId}` : ""}`}
+                  href={contactHref(contact.id, { groupId, page })}
                   className="group flex min-w-0 flex-1 items-center gap-3 rounded-12 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring sm:gap-3.5"
                 >
                   <ContactAvatar name={contact.name} />

@@ -15,14 +15,20 @@ import { getContact, listNotes } from "@/lib/contacts";
 import { getContactGroupIds, listGroups } from "@/lib/groups";
 import { formatCalendarDay, formatDateTime, formatOverdue, pluralize } from "@/lib/format";
 import { getKeepInTouchStatus, type KeepInTouchStatus } from "@/lib/keep-in-touch";
+import { homeHref, parsePage } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 export default async function ContactPage({ params, searchParams }: PageProps<"/contacts/[id]">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
-  // The group chosen in the filter on the home page, so "Все контакты" goes back to it
-  const fromGroup = Number((await searchParams).group);
-  const backHref = Number.isInteger(fromGroup) && fromGroup > 0 ? `/?group=${fromGroup}` : "/";
+  // The group chosen in the filter on the home page and the parts of the list shown, so "Все контакты"
+  // goes back to the same list
+  const from = await searchParams;
+  const fromGroup = Number(from.group);
+  const backHref = homeHref({
+    groupId: Number.isInteger(fromGroup) && fromGroup > 0 ? fromGroup : null,
+    page: parsePage(from.page),
+  });
 
   const [contact, notes, keepInTouch, groups, groupIds] = await Promise.all([
     getContact(id),

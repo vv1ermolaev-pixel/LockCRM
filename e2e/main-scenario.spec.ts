@@ -1,5 +1,5 @@
 // Success criteria from specs/01-продуктовая-идея.md:
-// 1. Open the app -> the list of all contacts is visible
+// 1. Open the app -> the list of contacts is visible, the rest behind «Показать ещё»
 // 2. Add a contact -> find it by name -> add a note -> the change is saved in the contact card
 // 3. Open the same address in another browser -> the same contacts
 
@@ -22,6 +22,13 @@ function contactRows(page: Page) {
   return page.locator('li[id^="contact-"]');
 }
 
+// The home list shows the first 20 by name; the rest are behind «Показать ещё»
+async function expectFirstPart(page: Page) {
+  const total = await countContactsInDb();
+  await expect(contactRows(page)).toHaveCount(Math.min(20, total));
+  await expect(page.getByRole("button", { name: "Показать ещё" })).toHaveCount(total > 20 ? 1 : 0);
+}
+
 async function openOtherBrowser(): Promise<Browser> {
   try {
     return await chromium.launch({ channel: "chrome" });
@@ -40,10 +47,10 @@ test.afterAll(async () => {
 });
 
 test("main scenario works end to end", async ({ page }) => {
-  await test.step("open the app: all contacts are listed", async () => {
+  await test.step("open the app: the first 20 contacts are listed, the rest behind «Показать ещё»", async () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Контакты" })).toBeVisible();
-    await expect(contactRows(page)).toHaveCount(await countContactsInDb());
+    await expectFirstPart(page);
   });
 
   await test.step("adding without a name shows an error", async () => {
@@ -67,7 +74,10 @@ test("main scenario works end to end", async ({ page }) => {
     const newRow = contactRows(page).filter({ hasText: contactName });
     await expect(newRow).toBeVisible();
     await expect(newRow).toContainText("Новый");
-    await expect(contactRows(page)).toHaveCount(await countContactsInDb());
+    // It is the first row, above the first 20 others, and not again among them
+    await expect(contactRows(page).first()).toContainText(contactName);
+    await expect(contactRows(page)).toHaveCount(1 + Math.min(20, (await countContactsInDb()) - 1));
+    await expect(newRow).toHaveCount(1);
   });
 
   await test.step("find the contact by name and open the card", async () => {
@@ -112,7 +122,7 @@ test("main scenario works end to end", async ({ page }) => {
     try {
       const otherPage = await otherBrowser.newPage({ baseURL: test.info().project.use.baseURL });
       await otherPage.goto("/");
-      await expect(contactRows(otherPage)).toHaveCount(await countContactsInDb());
+      await expectFirstPart(otherPage);
 
       await otherPage.getByRole("searchbox", { name: "Поиск по контактам" }).fill(contactName);
       // Wait for the search to apply: in a database with only this contact the list has one row before it does,

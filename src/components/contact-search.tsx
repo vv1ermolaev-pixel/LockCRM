@@ -33,9 +33,11 @@ export function ContactSearch() {
   function search(rawQuery: string) {
     const query = rawQuery.trim();
     setSentQuery(query);
-    // Only "q" changes: the chosen group stays, the "new contact" highlight goes
+    // Only "q" changes: the chosen group stays, the "new contact" highlight goes, and the new list starts
+    // from its first part
     const params = new URLSearchParams(searchParams);
     params.delete("added");
+    params.delete("page");
     if (query) {
       params.set("q", query);
     } else {
