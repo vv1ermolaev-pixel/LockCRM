@@ -14,9 +14,7 @@ RUN pnpm install --frozen-lockfile
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# The db module requires DATABASE_URL on import. This placeholder only exists during the
-# build and is never used to connect: pages read data at request time, not at build time.
-RUN NEXT_OUTPUT=standalone DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm build
+RUN NEXT_OUTPUT=standalone pnpm build
 # Migrations and seed run in the same image, which has no node_modules:
 # bundle each script with its libraries into a single file
 RUN pnpm exec esbuild scripts/migrate.ts scripts/seed.ts \

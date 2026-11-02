@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, count, desc, eq, inArray, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
+import { QueryBuilder } from "drizzle-orm/pg-core";
 
 import { db } from "@/db";
 import { contactGroups, contacts, groups, notes } from "@/db/schema";
@@ -121,8 +122,9 @@ function explainMatch(contact: FoundContact, search: SearchQuery): ContactMatch 
   return { field: best.field, text: best.field === "email" ? best.text : makeSnippet(best.text, best.words) };
 }
 
-// Built with the query builder for the same reason as bestNoteBody()
-const contactGroupIds = db
+// Built with the query builder for the same reason as bestNoteBody().
+// The standalone builder, not db: this runs on import, and the build imports modules with no database settings
+const contactGroupIds = new QueryBuilder()
   .select({
     ids: sql`coalesce(array_agg(${contactGroups.groupId} order by ${groups.position}, ${groups.id}), '{}')`,
   })

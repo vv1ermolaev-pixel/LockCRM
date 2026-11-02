@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, desc, eq, max, sql } from "drizzle-orm";
+import { QueryBuilder } from "drizzle-orm/pg-core";
 
 import { db } from "@/db";
 import { contacts, notes } from "@/db/schema";
@@ -13,8 +14,9 @@ const TIME_ZONE = "Europe/Moscow";
 
 // The same expressions drive the "Пора связаться" block and the contact card, so they never disagree.
 // Built with the query builder, not raw sql, for the same reason as bestNoteBody() in contacts.ts:
-// in a single-table select Drizzle drops table names from columns, and an unqualified "id" would mean notes.id
-const lastNoteAt = db
+// in a single-table select Drizzle drops table names from columns, and an unqualified "id" would mean notes.id.
+// The standalone builder, not db: this runs on import, and the build imports modules with no database settings
+const lastNoteAt = new QueryBuilder()
   .select({ value: max(notes.createdAt) })
   .from(notes)
   .where(eq(notes.contactId, contacts.id));
