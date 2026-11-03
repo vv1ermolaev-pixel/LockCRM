@@ -830,15 +830,18 @@ test.describe("«Связались» in the block", () => {
 
 test.describe("«Связались» on the card", () => {
   test("marks an overdue contact: new due date, no note, gone from the block", async ({ page }) => {
-    // A month contact 3 days overdue: the last communication was a month and 3 days ago
+    // A month contact about 3 days overdue: the last communication was a month and about 3 days ago.
+    // Not always exactly 3: when 3 days ago was the 31st and the month before is shorter, no day is exactly
+    // a month before it (30 September + 1 month = 30 October, not 31)
     const lastDay = addMonths(moscowDay(-3), -1);
     const { id, name } = await seedContact({
       label: "Карточка",
       frequency: "month",
       createdAt: `${lastDay}T12:00:00+03:00`,
     });
+    const overdue = `просрочено на ${daysText(expectedOverdueDays("month", lastDay))}`;
 
-    await expectStatus(page, id, { overdue: "просрочено на 3 дня" });
+    await expectStatus(page, id, { overdue });
     await page.getByRole("button", { name: "Связались", exact: true }).click();
 
     await expect(
@@ -870,14 +873,16 @@ test.describe("«Связались» on the card", () => {
   });
 
   test("a message with «Отменить» appears, and «Отменить» brings the overdue state back", async ({ page }) => {
+    // A month and about 3 days ago, as in the first test of this group
     const lastDay = addMonths(moscowDay(-3), -1);
     const { id } = await seedContact({
       label: "Отмена карточки",
       frequency: "month",
       createdAt: `${lastDay}T12:00:00+03:00`,
     });
+    const overdue = `просрочено на ${daysText(expectedOverdueDays("month", lastDay))}`;
 
-    await expectStatus(page, id, { overdue: "просрочено на 3 дня" });
+    await expectStatus(page, id, { overdue });
 
     await page.getByRole("button", { name: "Связались", exact: true }).click();
     const toast = page.locator("[data-sonner-toast]");
@@ -887,7 +892,7 @@ test.describe("«Связались» on the card", () => {
     ).toBeVisible();
 
     await toast.getByRole("button", { name: "Отменить" }).click();
-    await expect(page.getByText("Пора связаться — просрочено на 3 дня", { exact: true })).toBeVisible();
+    await expect(page.getByText(`Пора связаться — ${overdue}`, { exact: true })).toBeVisible();
     await expect(page.getByText("Следующий раз")).toHaveCount(0);
     expect(await getMarkedAt(id)).toBeNull();
   });
@@ -916,14 +921,16 @@ test.describe("«Связались» on the card", () => {
   });
 
   test("without «Отменить» the mark stays after a reload", async ({ page }) => {
+    // A month and about 3 days ago, as in the first test of this group
     const lastDay = addMonths(moscowDay(-3), -1);
     const { id, name } = await seedContact({
       label: "Без отмены",
       frequency: "month",
       createdAt: `${lastDay}T12:00:00+03:00`,
     });
+    const overdue = `просрочено на ${daysText(expectedOverdueDays("month", lastDay))}`;
 
-    await expectStatus(page, id, { overdue: "просрочено на 3 дня" });
+    await expectStatus(page, id, { overdue });
     await page.getByRole("button", { name: "Связались", exact: true }).click();
     await expect(page.locator("[data-sonner-toast]")).toContainText("Отметили общение");
 
