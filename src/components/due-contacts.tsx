@@ -9,13 +9,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckIcon, Loader2Icon, Undo2Icon } from "lucide-react";
+import { CheckIcon, InfoIcon, Loader2Icon, Undo2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { markContacted, undoMarkContacted } from "@/app/actions";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { Highlight } from "@/components/highlight";
 import { Button } from "@/components/ui/button";
+import { CONTACT_DELETED, failureMessage } from "@/lib/action-messages";
 import { contactFrequencyLabels } from "@/lib/contact-frequency";
 import { contactForms, formatOverdue, pluralize } from "@/lib/format";
 import type { DueContact } from "@/lib/keep-in-touch";
@@ -34,6 +35,8 @@ type RowState =
   | { kind: "marked"; previous: string | null; run: number }
   // "Отменить" is being saved
   | { kind: "undoing"; previous: string | null; run: number }
+  // The contact was deleted in another tab: the same row as a confirmation, but with no "Отменить"
+  | { kind: "deleted"; run: number }
   // Collapsing; the row is removed when the transition is over
   | { kind: "leaving" };
 
@@ -96,14 +99,20 @@ export function DueContacts({
     startTimer(id, UNDO_WINDOW_MS, () => leave(id));
   }
 
+  function showDeleted(id: number) {
+    setRowState(id, { kind: "deleted", run: nextRun() });
+    startTimer(id, UNDO_WINDOW_MS, () => leave(id));
+  }
+
   async function handleMark(id: number) {
     setRowState(id, { kind: "saving" });
     try {
-      const { previous } = await markContacted(id);
-      showConfirmation(id, previous);
+      const result = await markContacted(id);
+      if (result.ok) showConfirmation(id, result.previous);
+      else showDeleted(id);
     } catch {
       setRowState(id, { kind: "due" });
-      toast.error("Не удалось отметить общение. Проверьте, что база данных запущена, и попробуйте ещё раз.");
+      toast.error(failureMessage("отметить общение"));
     }
   }
 
@@ -114,7 +123,7 @@ export function DueContacts({
       await undoMarkContacted(id, previous);
       setRowState(id, { kind: "due" });
     } catch {
-      toast.error("Не удалось отменить. Проверьте, что база данных запущена, и попробуйте ещё раз.");
+      toast.error(failureMessage("отменить"));
       // The mark is still saved: offer "Отменить" again for another few seconds
       showConfirmation(id, previous);
     }
@@ -141,6 +150,8 @@ export function DueContacts({
                 undoing={state.kind === "undoing"}
                 onUndo={() => handleUndo(contact.id, state.previous, state.run)}
               />
+            ) : state.kind === "deleted" ? (
+              <Confirmation key={state.run} name={contact.name} deleted />
             ) : (
               <div className="flex min-h-18 items-center gap-2.5 py-3 pr-3 pl-4 sm:min-h-19 sm:gap-3 sm:py-3.5 sm:pr-4 sm:pl-5">
                 <Link
@@ -196,33 +207,50 @@ function DueRow({ leaving, children }: { leaving: boolean; children: React.React
   );
 }
 
-function Confirmation({ name, undoing, onUndo }: { name: string; undoing: boolean; onUndo: () => void }) {
+function Confirmation({
+  name,
+  undoing = false,
+  deleted = false,
+  onUndo,
+}: {
+  name: string;
+  undoing?: boolean;
+  // The contact is gone: nothing to undo
+  deleted?: boolean;
+  onUndo?: () => void;
+}) {
   return (
     <div className="relative flex min-h-18 items-center gap-2.5 bg-muted py-3 pr-3 pl-4 duration-200 animate-in fade-in motion-reduce:animate-none sm:min-h-19 sm:gap-3 sm:pr-4 sm:pl-5">
       <span
         aria-hidden
         className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ink text-pistachio"
       >
-        <CheckIcon className="size-5.5" strokeWidth={3} />
+        {deleted ? (
+          <InfoIcon className="size-5.5" strokeWidth={2.5} />
+        ) : (
+          <CheckIcon className="size-5.5" strokeWidth={3} />
+        )}
       </span>
       <div role="status" className="grid min-w-0 flex-1 gap-0.5">
-        <span className="font-bold">Отметили общение</span>
+        <span className="font-bold">{deleted ? CONTACT_DELETED : "Отметили общение"}</span>
         <span className="truncate text-sm text-copy-muted">{name}</span>
       </div>
-      <Button
-        variant="outline"
-        className="gap-1.5 bg-card px-3 text-sm hover:bg-pistachio-hover sm:px-3.5"
-        disabled={undoing}
-        onClick={onUndo}
-      >
-        {/* The icon is dropped on phones: without it "Отметили общение" fits on one line at 375-390 px */}
-        {undoing ? (
-          <Loader2Icon className="size-4 animate-spin" />
-        ) : (
-          <Undo2Icon className="hidden size-4 sm:block" strokeWidth={2.5} />
-        )}
-        Отменить
-      </Button>
+      {!deleted && (
+        <Button
+          variant="outline"
+          className="gap-1.5 bg-card px-3 text-sm hover:bg-pistachio-hover sm:px-3.5"
+          disabled={undoing}
+          onClick={onUndo}
+        >
+          {/* The icon is dropped on phones: without it "Отметили общение" fits on one line at 375-390 px */}
+          {undoing ? (
+            <Loader2Icon className="size-4 animate-spin" />
+          ) : (
+            <Undo2Icon className="hidden size-4 sm:block" strokeWidth={2.5} />
+          )}
+          Отменить
+        </Button>
+      )}
       <CountdownBar />
     </div>
   );

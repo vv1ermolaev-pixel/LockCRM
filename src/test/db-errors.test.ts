@@ -3,7 +3,7 @@ import { inspect } from "node:util";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { addNote, createContact, deleteContact } from "@/app/actions";
+import { addNote, createContact } from "@/app/actions";
 import { db } from "@/db";
 
 import { contactForm } from "./forms";
@@ -42,15 +42,18 @@ describe("Errors of failed queries", () => {
     expect(logged).toContain("reject_every_contact");
   });
 
-  it("keep the note text out of the log when the contact was deleted meanwhile", async () => {
+  it("keep the note text out of the log when saving fails", async () => {
     const id = await addContact("Маша");
-    await deleteContact(id);
+    // Every new note is rejected: Postgres then puts the whole row into the error detail
+    await db.execute(sql`alter table notes add constraint reject_every_note check (false)`);
     const form = new FormData();
     form.set("body", "Обещала вернуть книгу до пятницы");
 
     const logged = await loggedError(addNote(id, form));
 
     expect(logged).not.toContain("Обещала вернуть книгу до пятницы");
-    expect(logged).toContain("23503");
+    // Still enough to tell what went wrong
+    expect(logged).toContain("23514");
+    expect(logged).toContain("reject_every_note");
   });
 });

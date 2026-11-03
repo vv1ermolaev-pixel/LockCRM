@@ -32,6 +32,7 @@ import { toast } from "sonner";
 
 import { reorderGroups } from "@/app/actions";
 import { GroupsDialog } from "@/components/groups-dialog";
+import { failureMessage } from "@/lib/action-messages";
 import { groupColorClasses } from "@/lib/group-colors";
 import type { GroupListItem } from "@/lib/groups";
 import { cn } from "@/lib/utils";
@@ -148,7 +149,7 @@ export function GroupFilter({ groups, selectedId }: { groups: GroupListItem[]; s
       await reorderGroups(next.map((group) => group.id));
     } catch {
       setOrder(previous);
-      toast.error("Не удалось сохранить порядок групп");
+      toast.error(failureMessage("сохранить порядок групп"));
     }
   }
 

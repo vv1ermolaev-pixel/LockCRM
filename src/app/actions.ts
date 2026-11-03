@@ -16,14 +16,19 @@ import {
   type ContactFieldErrors,
 } from "@/lib/validation";
 
-export type ContactActionResult = { ok: true; id: number; name: string } | { ok: false; errors: ContactFieldErrors };
+// The contact is gone because it was deleted in another tab or browser. An answer, not an error:
+// a thrown error reaches the client without its text in production, and it would be written to the server log
+export type ContactDeleted = { ok: false; contactDeleted: true };
+
+export type ContactActionResult =
+  { ok: true; id: number; name: string } | { ok: false; errors: ContactFieldErrors } | ContactDeleted;
 
 export type GroupActionResult = groupStore.GroupResult;
 
-export type NoteActionResult = { ok: true } | { ok: false; error: string };
+export type NoteActionResult = { ok: true } | { ok: false; error: string } | ContactDeleted;
 
 // `previous` is the mark before this press (an ISO date, or null), which "Отменить" gives back
-export type MarkContactedResult = { ok: true; previous: string | null };
+export type MarkContactedResult = { ok: true; previous: string | null } | ContactDeleted;
 
 function assertValidId(id: number) {
   if (!Number.isInteger(id) || id <= 0) {
@@ -63,12 +68,14 @@ export async function updateContact(id: number, formData: FormData): Promise<Con
       .set(fields)
       .where(eq(contacts.id, id))
       .returning({ id: contacts.id, name: contacts.name });
-    if (!row) {
-      throw new Error(`Contact ${id} not found`);
-    }
+    if (!row) return null;
     await groupStore.setContactGroups(tx, row.id, { groupIds, newNames: newGroups });
     return row;
   });
+
+  // No revalidatePath when the contact is gone: the page would re-render as "not found" and the open window
+  // with what the user typed would disappear
+  if (!updated) return { ok: false, contactDeleted: true };
 
   revalidatePath("/", "layout");
   return { ok: true, id: updated.id, name: updated.name };
@@ -93,11 +100,22 @@ export async function addNote(contactId: number, formData: FormData): Promise<No
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  await db.transaction(async (tx) => {
+  const saved = await db.transaction(async (tx) => {
+    // Locked, so the contact cannot be deleted between this check and the insert (the foreign key would fail)
+    const [contact] = await tx
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(eq(contacts.id, contactId))
+      .for("update");
+    if (!contact) return false;
+
     await tx.insert(notes).values({ contactId, body: parsed.data.body });
     // Touch the contact so "updated_at" reflects the latest interaction
     await tx.update(contacts).set({ updatedAt: new Date() }).where(eq(contacts.id, contactId));
+    return true;
   });
+  // No revalidatePath, as in updateContact
+  if (!saved) return { ok: false, contactDeleted: true };
 
   // A note is communication: the card shows the new due date, and the home page must drop the contact from
   // "Пора связаться" (also when the browser comes back with "Back", from the client router cache)
@@ -106,30 +124,31 @@ export async function addNote(contactId: number, formData: FormData): Promise<No
 }
 
 // "Связались": communication without a note. The mark is saved at once, not after the undo window,
-// so closing the tab right after the press loses nothing. A contact that is already gone is not an error,
-// as in deleteContact.
+// so closing the tab right after the press loses nothing. A contact that is already gone is answered
+// with "contact deleted", as in updateContact.
 export async function markContacted(contactId: number): Promise<MarkContactedResult> {
   assertValidId(contactId);
 
-  const previous = await db.transaction(async (tx) => {
+  const marked = await db.transaction(async (tx) => {
     // Locked, so two presses at once cannot both read the same "previous"
     const [row] = await tx
       .select({ markedAt: contacts.contactMarkedAt })
       .from(contacts)
       .where(eq(contacts.id, contactId))
       .for("update");
-    if (!row) return null;
+    if (!row) return undefined;
 
     // The database clock, like created_at and the due date calculation
     await tx
       .update(contacts)
       .set({ contactMarkedAt: sql`now()` })
       .where(eq(contacts.id, contactId));
-    return row.markedAt?.toISOString() ?? null;
+    return { previous: row.markedAt?.toISOString() ?? null };
   });
+  if (!marked) return { ok: false, contactDeleted: true };
 
   revalidatePath("/", "layout");
-  return { ok: true, previous };
+  return { ok: true, previous: marked.previous };
 }
 
 // Puts back the mark that was there before the press. It writes the value it is given and does not check
