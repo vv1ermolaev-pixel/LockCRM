@@ -7,7 +7,7 @@ import { contactForm, type ContactFormFields } from "./forms";
 
 export async function addContact(name: string, fields: Omit<ContactFormFields, "name"> = {}) {
   const result = await createContact(contactForm({ name, ...fields }));
-  if (!result.ok) throw new Error(`Contact not created: ${JSON.stringify(result.errors)}`);
+  if (!result.ok) throw new Error(`Contact not created: ${JSON.stringify(result)}`);
   return result.id;
 }
 

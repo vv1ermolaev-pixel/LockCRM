@@ -1,11 +1,13 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { CheckIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { markContacted, undoMarkContacted } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { BACK_TO_LIST, CONTACT_DELETED, failureMessage } from "@/lib/action-messages";
 import { UNDO_WINDOW_MS } from "@/lib/mark-contacted";
 
 // The undo closes over the contact and the previous mark, not over this component: the toast lives in
@@ -14,23 +16,30 @@ async function undoMark(contactId: number, previous: string | null) {
   try {
     await undoMarkContacted(contactId, previous);
   } catch {
-    toast.error("Не удалось отменить. Проверьте, что база данных запущена, и попробуйте ещё раз.");
+    toast.error(failureMessage("отменить"));
   }
 }
 
-export function MarkContactedButton({ contactId }: { contactId: number }) {
+// `listHref` is where "К списку контактов" leads when the contact turns out to be deleted
+export function MarkContactedButton({ contactId, listHref }: { contactId: number; listHref: string }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
     startTransition(async () => {
       try {
-        const { previous } = await markContacted(contactId);
+        const result = await markContacted(contactId);
+        if (!result.ok) {
+          // Not an error and not a success, and nothing to undo: the card stays where it is
+          toast(CONTACT_DELETED, { action: { label: BACK_TO_LIST, onClick: () => router.push(listHref) } });
+          return;
+        }
         toast.success("Отметили общение", {
           duration: UNDO_WINDOW_MS,
-          action: { label: "Отменить", onClick: () => undoMark(contactId, previous) },
+          action: { label: "Отменить", onClick: () => undoMark(contactId, result.previous) },
         });
       } catch {
-        toast.error("Не удалось отметить общение. Проверьте, что база данных запущена, и попробуйте ещё раз.");
+        toast.error(failureMessage("отметить общение"));
       }
     });
   }

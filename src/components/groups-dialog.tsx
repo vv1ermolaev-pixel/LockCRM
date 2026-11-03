@@ -21,14 +21,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { failureMessage } from "@/lib/action-messages";
 import { pluralize } from "@/lib/format";
 import { groupColorClasses, groupColorLabels, groupColors, type GroupColor } from "@/lib/group-colors";
 import type { GroupListItem } from "@/lib/groups";
 import { cn } from "@/lib/utils";
 
 const peopleForms: [string, string, string] = ["человек", "человека", "человек"];
-const NETWORK_ERROR = "Не удалось сохранить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
-
 // One row at a time is open for a color, a new name or a delete confirmation
 type OpenRow = { id: number; mode: "color" | "rename" | "delete" } | null;
 
@@ -100,7 +99,7 @@ function GroupRow({
       try {
         await action();
       } catch {
-        toast.error(NETWORK_ERROR);
+        toast.error(failureMessage("сохранить"));
       }
     });
   }
@@ -273,7 +272,7 @@ function NewGroupForm() {
           setError(result.error);
         }
       } catch {
-        toast.error(NETWORK_ERROR);
+        toast.error(failureMessage("сохранить"));
       }
     });
   }

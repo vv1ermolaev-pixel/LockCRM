@@ -5,6 +5,7 @@ import { CheckIcon, Loader2Icon, PlusIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import type { ContactActionResult } from "@/app/actions";
+import { ContactDeletedNotice } from "@/components/contact-deleted-notice";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { failureMessage } from "@/lib/action-messages";
 import { contactFrequencies, contactFrequencyLabels, noContactFrequency } from "@/lib/contact-frequency";
 import { groupColorClasses } from "@/lib/group-colors";
 import type { GroupListItem } from "@/lib/groups";
@@ -39,6 +41,9 @@ type ContactFormDialogProps = {
   // All groups in the user's order
   groups: GroupListItem[];
   action: (formData: FormData) => Promise<ContactActionResult>;
+  // Where "К списку контактов" leads when the contact turns out to be deleted. Only a window for an existing
+  // contact can get that answer
+  listHref?: string;
   onSuccess: (result: { id: number; name: string }) => void;
 };
 
@@ -50,16 +55,21 @@ export function ContactFormDialog({
   defaultValues = {},
   groups,
   action,
+  listHref = "/",
   onSuccess,
 }: ContactFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<ContactFieldErrors>({});
+  const [contactDeleted, setContactDeleted] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleOpenChange(nextOpen: boolean) {
     if (isPending) return;
     setOpen(nextOpen);
-    if (!nextOpen) setErrors({});
+    if (!nextOpen) {
+      setErrors({});
+      setContactDeleted(false);
+    }
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -69,14 +79,17 @@ export function ContactFormDialog({
       try {
         const result = await action(formData);
         if (!result.ok) {
-          setErrors(result.errors);
+          // The window stays open and the fields keep what was typed: the form is not reset
+          setContactDeleted("contactDeleted" in result);
+          setErrors("errors" in result ? result.errors : {});
           return;
         }
         setErrors({});
+        setContactDeleted(false);
         setOpen(false);
         onSuccess(result);
       } catch {
-        toast.error("Не удалось сохранить. Проверьте, что база данных запущена, и попробуйте ещё раз.");
+        toast.error(failureMessage("сохранить"));
       }
     });
   }
@@ -143,6 +156,7 @@ export function ContactFormDialog({
             error={errors.newGroups ?? errors.groupIds}
           />
         </form>
+        {contactDeleted && <ContactDeletedNotice listHref={listHref} onNavigate={() => setOpen(false)} />}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline" disabled={isPending}>

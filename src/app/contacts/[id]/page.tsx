@@ -73,6 +73,7 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
               }}
               groups={groups}
               action={updateContact.bind(null, contact.id)}
+              listHref={backHref}
             />
             <DeleteContactButton
               name={contact.name}
@@ -114,7 +115,7 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
                 <span>{contactFrequencyLabels[contact.contactFrequency]}</span>
                 {keepInTouch && <DueLine status={keepInTouch} />}
-                <MarkContactedButton contactId={contact.id} />
+                <MarkContactedButton contactId={contact.id} listHref={backHref} />
               </div>
             )}
           </Detail>
@@ -134,7 +135,7 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
         </div>
 
         <div className="grid gap-7 rounded-28 bg-card p-5 shadow-card sm:rounded-32 sm:p-7">
-          <NoteForm action={addNote.bind(null, contact.id)} />
+          <NoteForm action={addNote.bind(null, contact.id)} listHref={backHref} />
 
           {notes.length > 0 ? (
             // Timeline like the history card on the landing: the newest note is highlighted

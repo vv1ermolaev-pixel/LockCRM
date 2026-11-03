@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { failureMessage } from "@/lib/action-messages";
 import { pluralize } from "@/lib/format";
 import type { GroupListItem } from "@/lib/groups";
 
@@ -53,10 +54,12 @@ export function EditContactButton({
   contact,
   groups,
   action,
+  listHref,
 }: {
   contact: ContactFormValues;
   groups: GroupListItem[];
   action: (formData: FormData) => Promise<ContactActionResult>;
+  listHref: string;
 }) {
   return (
     <ContactFormDialog
@@ -72,6 +75,7 @@ export function EditContactButton({
       defaultValues={contact}
       groups={groups}
       action={action}
+      listHref={listHref}
       onSuccess={() => toast.success("Изменения сохранены")}
     />
   );
@@ -103,7 +107,7 @@ export function DeleteContactButton({
         // Replace, not push: "Back" must not lead to the card that no longer exists
         router.replace("/");
       } catch {
-        toast.error("Не удалось удалить. Проверьте, что база данных запущена, и попробуйте ещё раз.");
+        toast.error(failureMessage("удалить"));
       }
     });
   }
