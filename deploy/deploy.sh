@@ -3,7 +3,8 @@
 #   bash /srv/lockcrm/deploy/deploy.sh <image:tag> <public-url>
 # stdin: "<registry-user> <registry-token>" to pull the image from GHCR.
 #
-# Steps: pull image -> migrations (one-off container) -> new app -> smoke /health -> cleanup.
+# Steps: pull image -> database backup -> migrations (one-off container) -> new app
+# -> smoke /health -> cleanup.
 # Any failure stops the deploy with a non-zero exit code. There is no automatic
 # rollback: a human decides and runs deploy/rollback.sh.
 
@@ -34,6 +35,14 @@ unset REGISTRY_TOKEN
 
 log "Starting database"
 compose up --detach --wait --quiet-pull db
+
+# The dump name carries the version that runs before this deploy ("none" on the very first one)
+CURRENT_IMAGE="$(running_image)"
+CURRENT_VERSION="$(image_version "${CURRENT_IMAGE:-none}")"
+log "Backing up database (running version: $CURRENT_VERSION)"
+# No backup - no migrations: the running version stays as it is
+backup_db deploy "$CURRENT_VERSION" || fail "database backup failed, nothing changed"
+prune_backups
 
 log "Running migrations"
 # If migrations fail, set -e stops here: the new app version does not start

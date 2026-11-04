@@ -1,5 +1,5 @@
 # Production stack on the server, docker compose project "prod".
-# Used only through deploy/deploy.sh and deploy/rollback.sh: they set APP_IMAGE
+# Used only through the scripts in deploy/ (deploy.sh, rollback.sh, restore.sh, seed.sh): they set APP_IMAGE
 # and read secrets from /srv/lockcrm/.env (mode 600).
 
 # Container logs are capped: at most 3 files of 10 MB per container
