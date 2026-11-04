@@ -1,15 +1,18 @@
 import { eq, sql } from "drizzle-orm";
-import { describe, expect, inject, it } from "vitest";
+import { beforeEach, describe, expect, inject, it } from "vitest";
 
 import { updateContact } from "@/app/actions";
 import { db } from "@/db";
 import { contacts } from "@/db/schema";
-import { getContact, listContacts, listNotes } from "@/lib/contacts";
-import { listDueContacts } from "@/lib/keep-in-touch";
+import { getCurrentUser } from "@/lib/session";
 
+import { getContact, listContacts, listDueContacts, listNotes, signInTestUser } from "./as-user";
 import { applyPendingMigrations, resetTestDatabaseUpTo } from "./database";
 import { contactForm } from "./forms";
 import { addContact, addGroup, groupId } from "./scenario";
+import { signInAs } from "./sign-in";
+
+beforeEach(signInTestUser);
 
 // A due date in the past cannot be set on screen: the contact is moved back to being added a month ago
 async function addDueContact(name: string, groupIds: number[] = []) {
@@ -41,10 +44,13 @@ describe("Existing contacts after the deploy", () => {
         (${id}, 'Поздравил с днём рождения', '2025-03-15T18:00:00Z')
     `);
 
-    await applyPendingMigrations(testUrl);
+    // The deploy that brings login hands every existing contact to the owner
+    await applyPendingMigrations(testUrl, { ownerEmail: "owner@example.com" });
+    await signInAs("owner@example.com");
 
     expect(await getContact(id)).toEqual({
       id,
+      ownerId: (await getCurrentUser())!.id,
       name: "Анна Смирнова",
       about: "Дизайнер",
       howWeMet: "На курсах",

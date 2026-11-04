@@ -6,6 +6,7 @@ import { addNote, deleteContact, markContacted, updateContact } from "@/app/acti
 import { db } from "@/db";
 import { notes } from "@/db/schema";
 
+import { signInTestUser } from "./as-user";
 import { contactForm } from "./forms";
 import { addContact } from "./scenario";
 
@@ -22,7 +23,8 @@ async function deletedContactId() {
 }
 
 describe("Actions on a contact that was deleted meanwhile", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await signInTestUser();
     vi.mocked(revalidatePath).mockClear();
   });
 

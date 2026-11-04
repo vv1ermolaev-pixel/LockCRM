@@ -6,7 +6,11 @@
 import { chromium, expect, test, type Browser, type Page } from "@playwright/test";
 import postgres from "postgres";
 
+import { createTestPerson, removeTestPeople, signIn, type TestPerson } from "./sign-in";
+
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+
+let person: TestPerson;
 
 const suffix = Date.now().toString(36);
 const contactName = `Василиса Проверкина-${suffix}`;
@@ -14,7 +18,7 @@ const noteText = `Созвонились после конференции, до
 let createdContactId: number | null = null;
 
 async function countContactsInDb() {
-  const [row] = await sql<{ count: string }[]>`select count(*) from contacts`;
+  const [row] = await sql<{ count: string }[]>`select count(*) from contacts where owner_id = ${person.ownerId}`;
   return Number(row.count);
 }
 
@@ -38,11 +42,17 @@ async function openOtherBrowser(): Promise<Browser> {
   }
 }
 
+test.beforeAll(async ({ browser }) => {
+  person = await createTestPerson(browser, sql, "main");
+});
+
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(person.cookies);
+});
+
 test.afterAll(async () => {
-  // Remove only the contact this test created (its notes go with it)
-  if (createdContactId) {
-    await sql`delete from contacts where id = ${createdContactId}`;
-  }
+  // Remove only what this test created: the person with their contact (its notes go with it)
+  await removeTestPeople(sql, [person.email]);
   await sql.end();
 });
 
@@ -121,7 +131,8 @@ test("main scenario works end to end", async ({ page }) => {
     const otherBrowser = await openOtherBrowser();
     try {
       const otherPage = await otherBrowser.newPage({ baseURL: test.info().project.use.baseURL });
-      await otherPage.goto("/");
+      // Another browser has no login: the same person logs in there under the same email
+      await signIn(otherPage, person.email);
       await expectFirstPart(otherPage);
 
       await otherPage.getByRole("searchbox", { name: "Поиск по контактам" }).fill(contactName);

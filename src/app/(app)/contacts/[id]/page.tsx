@@ -16,9 +16,11 @@ import { getContactGroupIds, listGroups } from "@/lib/groups";
 import { formatCalendarDay, formatDateTime, formatOverdue, pluralize } from "@/lib/format";
 import { getKeepInTouchStatus, type KeepInTouchStatus } from "@/lib/keep-in-touch";
 import { homeHref, parsePage } from "@/lib/pagination";
+import { requireUserId } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export default async function ContactPage({ params, searchParams }: PageProps<"/contacts/[id]">) {
+  const userId = await requireUserId();
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
   // The group chosen in the filter on the home page and the parts of the list shown, so "Все контакты"
@@ -31,11 +33,11 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
   });
 
   const [contact, notes, keepInTouch, groups, groupIds] = await Promise.all([
-    getContact(id),
-    listNotes(id),
-    getKeepInTouchStatus(id),
-    listGroups(),
-    getContactGroupIds(id),
+    getContact(userId, id),
+    listNotes(userId, id),
+    getKeepInTouchStatus(userId, id),
+    listGroups(userId),
+    getContactGroupIds(userId, id),
   ]);
   if (!contact) notFound();
   // In the user's order of groups

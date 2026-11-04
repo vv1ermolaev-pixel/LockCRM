@@ -6,6 +6,7 @@ import { QueryBuilder } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { contacts, notes } from "@/db/schema";
 import type { ContactFrequency } from "@/lib/contact-frequency";
+import { ownedBy } from "@/lib/contacts";
 import { contactInGroup } from "@/lib/groups";
 
 // Days are counted in one fixed zone: the server runs in UTC, where a day starts at 03:00 Moscow time,
@@ -48,7 +49,7 @@ export type DueContact = {
 };
 
 // Contacts whose due date has passed, the most overdue first; with a group, only the people in it
-export async function listDueContacts(groupId?: number | null): Promise<DueContact[]> {
+export async function listDueContacts(userId: string, groupId?: number | null): Promise<DueContact[]> {
   const rows = await db
     .select({
       id: contacts.id,
@@ -58,7 +59,7 @@ export async function listDueContacts(groupId?: number | null): Promise<DueConta
     })
     .from(contacts)
     // No frequency means overdueDays is NULL, and NULL > 0 is not true: those contacts are never listed
-    .where(and(sql`${overdueDays} > 0`, contactInGroup(groupId)))
+    .where(and(ownedBy(userId), sql`${overdueDays} > 0`, contactInGroup(userId, groupId)))
     .orderBy(desc(overdueDays), asc(contacts.name), asc(contacts.id));
 
   return rows.flatMap(({ contactFrequency, ...contact }) =>
@@ -75,7 +76,7 @@ export type KeepInTouchStatus = {
 };
 
 // null when the contact has no frequency
-export async function getKeepInTouchStatus(contactId: number): Promise<KeepInTouchStatus | null> {
+export async function getKeepInTouchStatus(userId: string, contactId: number): Promise<KeepInTouchStatus | null> {
   const [row] = await db
     .select({
       dueDate: sql<string | null>`to_char(${dueDate}, 'YYYY-MM-DD')`,
@@ -83,7 +84,7 @@ export async function getKeepInTouchStatus(contactId: number): Promise<KeepInTou
       overdueDays: sql<number | null>`${overdueDays}`,
     })
     .from(contacts)
-    .where(eq(contacts.id, contactId));
+    .where(and(eq(contacts.id, contactId), ownedBy(userId)));
 
   if (!row || row.dueDate === null || row.overdueDays === null) return null;
   return { dueDate: row.dueDate, today: row.today, overdueDays: row.overdueDays };

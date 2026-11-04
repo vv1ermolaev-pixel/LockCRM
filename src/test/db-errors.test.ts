@@ -1,13 +1,16 @@
 import { inspect } from "node:util";
 
 import { sql } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { addNote, createContact } from "@/app/actions";
 import { db } from "@/db";
 
+import { signInTestUser } from "./as-user";
 import { contactForm } from "./forms";
 import { addContact } from "./scenario";
+
+beforeEach(signInTestUser);
 
 // Next.js writes an uncaught error to the server log the way util.inspect prints it: message, cause and fields
 async function loggedError(action: Promise<unknown>) {

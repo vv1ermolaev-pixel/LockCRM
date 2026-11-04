@@ -1,12 +1,15 @@
 import { inArray, sql } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { deleteContact } from "@/app/actions";
 import { db } from "@/db";
 import { contacts } from "@/db/schema";
-import { loadContactsPage, type ContactsPageData } from "@/lib/contacts-page";
+import type { ContactsPageData } from "@/lib/contacts-page";
 
+import { loadContactsPage, signInTestUser } from "./as-user";
 import { addContact, addGroup } from "./scenario";
+
+beforeEach(signInTestUser);
 
 // "Контакт 01" … "Контакт 45": zero-padded numbers sort the same way in any collation
 const numbered = (count: number, prefix = "Контакт") =>

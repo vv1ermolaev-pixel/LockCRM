@@ -5,6 +5,8 @@
 import { chromium, expect, test, type Browser, type Page } from "@playwright/test";
 import postgres from "postgres";
 
+import { createTestPerson, removeTestPeople, signIn, type TestPerson } from "./sign-in";
+
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 
 const suffix = Date.now().toString(36);
@@ -13,6 +15,7 @@ const groupName = `Пагинация-${suffix}`;
 const names = Array.from({ length: 45 }, (_, index) => `Пагинация ${suffix} ${String(index + 1).padStart(2, "0")}`);
 // Added on screen in the new contact test: by name it is the 6th in the group
 const newName = `Пагинация ${suffix} 05 Новая`;
+let person: TestPerson;
 let groupId = 0;
 let contactIds: number[] = [];
 
@@ -21,7 +24,7 @@ function contactRows(page: Page) {
 }
 
 async function countContactsInDb() {
-  const [row] = await sql<{ count: string }[]>`select count(*) from contacts`;
+  const [row] = await sql<{ count: string }[]>`select count(*) from contacts where owner_id = ${person.ownerId}`;
   return Number(row.count);
 }
 
@@ -63,24 +66,31 @@ async function openList(page: Page, url: string) {
   );
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
+  person = await createTestPerson(browser, sql, "list");
   const [group] = await sql<{ id: number }[]>`
-    insert into groups (name, color, position)
-    values (${groupName}, 'gray', (select coalesce(max(position), 0) + 1 from groups))
+    insert into groups (owner_id, name, color, position)
+    values (
+      ${person.ownerId}, ${groupName}, 'gray',
+      (select coalesce(max(position), 0) + 1 from groups where owner_id = ${person.ownerId})
+    )
     returning id
   `;
   groupId = group.id;
   const contacts = await sql<{ id: number }[]>`
-    insert into contacts ${sql(names.map((name) => ({ name })))} returning id
+    insert into contacts ${sql(names.map((name) => ({ name, owner_id: person.ownerId })))} returning id
   `;
   contactIds = contacts.map(({ id }) => id);
   await sql`insert into contact_groups ${sql(contactIds.map((id) => ({ contact_id: id, group_id: groupId })))}`;
 });
 
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(person.cookies);
+});
+
 test.afterAll(async () => {
-  // Remove only what this file created; group membership goes with the contacts and the group
-  await sql`delete from contacts where name like ${`Пагинация ${suffix} %`}`;
-  await sql`delete from groups where id = ${groupId}`;
+  // Remove only what this file created: the person with their contacts and groups (membership goes with them)
+  await removeTestPeople(sql, [person.email]);
   await sql.end();
 });
 
@@ -263,7 +273,8 @@ test.describe("how many are shown is kept in the address", () => {
 
     const otherBrowser = await openOtherBrowser();
     try {
-      const otherPage = await otherBrowser.newPage();
+      const otherPage = await otherBrowser.newPage({ baseURL: test.info().project.use.baseURL });
+      await signIn(otherPage, person.email);
       await otherPage.goto(address);
       await expect(contactRows(otherPage)).toHaveCount(40);
       await expect(contactRows(otherPage).nth(39)).toContainText(names[39]);

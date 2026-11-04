@@ -1,8 +1,8 @@
 // Steps that set up a scenario the way the user would: through the same actions the screens call
 
 import { createContact, createGroup } from "@/app/actions";
-import { listGroups } from "@/lib/groups";
 
+import { listGroups } from "./as-user";
 import { contactForm, type ContactFormFields } from "./forms";
 
 export async function addContact(name: string, fields: Omit<ContactFormFields, "name"> = {}) {

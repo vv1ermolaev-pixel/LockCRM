@@ -4,14 +4,17 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
 
+import { createTestPerson, removeTestPeople, type TestPerson } from "./sign-in";
+
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 
 const suffix = Date.now().toString(36);
 const contactName = `Удалямир Проверкин-${suffix}`;
 let contactId: number | null = null;
+let person: TestPerson;
 
 async function countContactsInDb() {
-  const [row] = await sql<{ count: string }[]>`select count(*) from contacts`;
+  const [row] = await sql<{ count: string }[]>`select count(*) from contacts where owner_id = ${person.ownerId}`;
   return Number(row.count);
 }
 
@@ -26,9 +29,11 @@ async function expectFirstPart(page: Page) {
   await expect(page.getByRole("button", { name: "Показать ещё" })).toHaveCount(total > 20 ? 1 : 0);
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
+  person = await createTestPerson(browser, sql, "delete");
   const [contact] = await sql<{ id: number }[]>`
-    insert into contacts (name, about) values (${contactName}, 'Тестовый контакт для удаления') returning id
+    insert into contacts (owner_id, name, about)
+    values (${person.ownerId}, ${contactName}, 'Тестовый контакт для удаления') returning id
   `;
   contactId = contact.id;
   await sql`
@@ -37,11 +42,13 @@ test.beforeAll(async () => {
   `;
 });
 
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(person.cookies);
+});
+
 test.afterAll(async () => {
-  // The test deletes the contact itself; this only cleans up if it failed earlier
-  if (contactId) {
-    await sql`delete from contacts where id = ${contactId}`;
-  }
+  // The test deletes the contact itself; this removes the person with everything left if it failed earlier
+  await removeTestPeople(sql, [person.email]);
   await sql.end();
 });
 

@@ -38,6 +38,10 @@ services:
     command: ["node", "scripts/migrate.mjs"]
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
+      # Optional: only the migration that gives existing contacts an owner (0004) and the demo data read it.
+      # Whether it is needed is decided by the migration itself: on a database with data and without this value
+      # it fails and changes nothing
+      OWNER_EMAIL: ${OWNER_EMAIL:-}
     depends_on:
       db:
         condition: service_healthy
@@ -48,6 +52,11 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
+      # Login: without these the app cannot let anybody in or send the link
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env}
+      SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in .env}
     ports:
       # Localhost only: the outside world reaches the app through nginx (HTTPS)
       - "127.0.0.1:3000:3000"

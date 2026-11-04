@@ -1,13 +1,15 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
 import { contacts, notes } from "@/db/schema";
+import { ownedBy } from "@/lib/contacts";
 import { groupColors } from "@/lib/group-colors";
 import * as groupStore from "@/lib/groups";
+import { requireUserId } from "@/lib/session";
 import {
   noteSchema,
   previousMarkSchema,
@@ -16,7 +18,8 @@ import {
   type ContactFieldErrors,
 } from "@/lib/validation";
 
-// The contact is gone because it was deleted in another tab or browser. An answer, not an error:
+// The contact is gone because it was deleted in another tab or browser, or it is somebody else's: the answer is the
+// same, so nobody can find out which contacts exist. An answer, not an error:
 // a thrown error reaches the client without its text in production, and it would be written to the server log
 export type ContactDeleted = { ok: false; contactDeleted: true };
 
@@ -36,7 +39,10 @@ function assertValidId(id: number) {
   }
 }
 
+// Every action starts with requireUserId(): no session means the login page, and the user id is then the one
+// condition of every query below. Actions are public endpoints, so nothing is taken on trust from the browser
 export async function createContact(formData: FormData): Promise<ContactActionResult> {
+  const userId = await requireUserId();
   const parsed = readContactForm(formData);
   if (!parsed.success) {
     return { ok: false, errors: toFieldErrors(parsed.error) };
@@ -45,8 +51,11 @@ export async function createContact(formData: FormData): Promise<ContactActionRe
   const { groupIds, newGroups, ...fields } = parsed.data;
   // One transaction: if the groups cannot be written, the contact is not saved either
   const created = await db.transaction(async (tx) => {
-    const [row] = await tx.insert(contacts).values(fields).returning({ id: contacts.id, name: contacts.name });
-    await groupStore.setContactGroups(tx, row.id, { groupIds, newNames: newGroups });
+    const [row] = await tx
+      .insert(contacts)
+      .values({ ...fields, ownerId: userId })
+      .returning({ id: contacts.id, name: contacts.name });
+    await groupStore.setContactGroups(tx, userId, row.id, { groupIds, newNames: newGroups });
     return row;
   });
 
@@ -55,6 +64,7 @@ export async function createContact(formData: FormData): Promise<ContactActionRe
 }
 
 export async function updateContact(id: number, formData: FormData): Promise<ContactActionResult> {
+  const userId = await requireUserId();
   assertValidId(id);
   const parsed = readContactForm(formData);
   if (!parsed.success) {
@@ -66,10 +76,10 @@ export async function updateContact(id: number, formData: FormData): Promise<Con
     const [row] = await tx
       .update(contacts)
       .set(fields)
-      .where(eq(contacts.id, id))
+      .where(and(eq(contacts.id, id), ownedBy(userId)))
       .returning({ id: contacts.id, name: contacts.name });
     if (!row) return null;
-    await groupStore.setContactGroups(tx, row.id, { groupIds, newNames: newGroups });
+    await groupStore.setContactGroups(tx, userId, row.id, { groupIds, newNames: newGroups });
     return row;
   });
 
@@ -82,10 +92,11 @@ export async function updateContact(id: number, formData: FormData): Promise<Con
 }
 
 export async function deleteContact(id: number): Promise<{ ok: true }> {
+  const userId = await requireUserId();
   assertValidId(id);
   // Notes go with the contact (on delete cascade). A contact that is already gone is not an error:
   // it may have been deleted in another browser, and the result is the same
-  await db.delete(contacts).where(eq(contacts.id, id));
+  await db.delete(contacts).where(and(eq(contacts.id, id), ownedBy(userId)));
 
   // No revalidatePath on purpose: it re-renders the current page, which is the card of the contact
   // that no longer exists, so "not found" would flash before the client goes to the list.
@@ -94,6 +105,7 @@ export async function deleteContact(id: number): Promise<{ ok: true }> {
 }
 
 export async function addNote(contactId: number, formData: FormData): Promise<NoteActionResult> {
+  const userId = await requireUserId();
   assertValidId(contactId);
   const parsed = noteSchema.safeParse({ body: formData.get("body") ?? "" });
   if (!parsed.success) {
@@ -105,7 +117,7 @@ export async function addNote(contactId: number, formData: FormData): Promise<No
     const [contact] = await tx
       .select({ id: contacts.id })
       .from(contacts)
-      .where(eq(contacts.id, contactId))
+      .where(and(eq(contacts.id, contactId), ownedBy(userId)))
       .for("update");
     if (!contact) return false;
 
@@ -127,6 +139,7 @@ export async function addNote(contactId: number, formData: FormData): Promise<No
 // so closing the tab right after the press loses nothing. A contact that is already gone is answered
 // with "contact deleted", as in updateContact.
 export async function markContacted(contactId: number): Promise<MarkContactedResult> {
+  const userId = await requireUserId();
   assertValidId(contactId);
 
   const marked = await db.transaction(async (tx) => {
@@ -134,7 +147,7 @@ export async function markContacted(contactId: number): Promise<MarkContactedRes
     const [row] = await tx
       .select({ markedAt: contacts.contactMarkedAt })
       .from(contacts)
-      .where(eq(contacts.id, contactId))
+      .where(and(eq(contacts.id, contactId), ownedBy(userId)))
       .for("update");
     if (!row) return undefined;
 
@@ -154,6 +167,7 @@ export async function markContacted(contactId: number): Promise<MarkContactedRes
 // Puts back the mark that was there before the press. It writes the value it is given and does not check
 // what the mark is now: with one user, a press from another tab inside the undo window is not a case to guard.
 export async function undoMarkContacted(contactId: number, previous: string | null): Promise<{ ok: true }> {
+  const userId = await requireUserId();
   assertValidId(contactId);
   const parsed = previousMarkSchema.safeParse(previous);
   if (!parsed.success) {
@@ -163,7 +177,7 @@ export async function undoMarkContacted(contactId: number, previous: string | nu
   await db
     .update(contacts)
     .set({ contactMarkedAt: parsed.data === null ? null : new Date(parsed.data) })
-    .where(eq(contacts.id, contactId));
+    .where(and(eq(contacts.id, contactId), ownedBy(userId)));
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -172,43 +186,48 @@ export async function undoMarkContacted(contactId: number, previous: string | nu
 // Group actions refresh every page: the filter, the labels in the list and on cards, and the contact window
 // all show groups, and the open "Группы" window gets the new list from the re-rendered page
 export async function createGroup(formData: FormData): Promise<GroupActionResult> {
-  const result = await groupStore.createGroup(String(formData.get("name") ?? ""));
+  const userId = await requireUserId();
+  const result = await groupStore.createGroup(userId, String(formData.get("name") ?? ""));
   if (result.ok) revalidatePath("/", "layout");
   return result;
 }
 
 export async function renameGroup(id: number, formData: FormData): Promise<GroupActionResult> {
+  const userId = await requireUserId();
   assertValidId(id);
-  const result = await groupStore.renameGroup(id, String(formData.get("name") ?? ""));
+  const result = await groupStore.renameGroup(userId, id, String(formData.get("name") ?? ""));
   if (result.ok) revalidatePath("/", "layout");
   return result;
 }
 
 export async function setGroupColor(id: number, color: string): Promise<{ ok: true }> {
+  const userId = await requireUserId();
   assertValidId(id);
   const parsed = z.enum(groupColors).safeParse(color);
   if (!parsed.success) {
     throw new Error(`Invalid group color: ${color}`);
   }
-  await groupStore.setGroupColor(id, parsed.data);
+  await groupStore.setGroupColor(userId, id, parsed.data);
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 export async function reorderGroups(orderedIds: number[]): Promise<{ ok: true }> {
+  const userId = await requireUserId();
   const parsed = z.array(z.number().int().positive()).safeParse(orderedIds);
   if (!parsed.success) {
     throw new Error(`Invalid group order: ${JSON.stringify(orderedIds)}`);
   }
-  await groupStore.reorderGroups(parsed.data);
+  await groupStore.reorderGroups(userId, parsed.data);
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 // A group that is already gone is not an error, as in deleteContact
 export async function deleteGroup(id: number): Promise<{ ok: true }> {
+  const userId = await requireUserId();
   assertValidId(id);
-  await groupStore.deleteGroup(id);
+  await groupStore.deleteGroup(userId, id);
   revalidatePath("/", "layout");
   return { ok: true };
 }

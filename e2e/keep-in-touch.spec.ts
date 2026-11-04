@@ -6,7 +6,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
 
+import { createTestPerson, removeTestPeople, type TestPerson } from "./sign-in";
+
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+
+let person: TestPerson;
 
 const suffix = Date.now().toString(36);
 const names = new Set<string>();
@@ -104,8 +108,8 @@ type SeedContact = {
 async function seedContact({ label, frequency = null, createdAt = daysAgo(0), noteTimes = [], markedAt }: SeedContact) {
   const name = uniqueName(label);
   const [contact] = await sql<{ id: number }[]>`
-    insert into contacts (name, contact_frequency, contact_marked_at, created_at)
-    values (${name}, ${frequency}, ${markedAt ?? null}, ${createdAt})
+    insert into contacts (owner_id, name, contact_frequency, contact_marked_at, created_at)
+    values (${person.ownerId}, ${name}, ${frequency}, ${markedAt ?? null}, ${createdAt})
     returning id
   `;
   for (const noteTime of noteTimes) {
@@ -121,8 +125,11 @@ async function seedGroup(label: string, contactIds: number[]) {
   const name = `${label}-${suffix}`;
   groupNames.add(name);
   const [group] = await sql<{ id: number }[]>`
-    insert into groups (name, color, position)
-    values (${name}, 'gray', (select coalesce(max(position), -1) + 1 from groups))
+    insert into groups (owner_id, name, color, position)
+    values (
+      ${person.ownerId}, ${name}, 'gray',
+      (select coalesce(max(position), -1) + 1 from groups where owner_id = ${person.ownerId})
+    )
     returning id
   `;
   for (const contactId of contactIds) {
@@ -140,7 +147,16 @@ test.afterEach(async () => {
   groupNames.clear();
 });
 
+test.beforeAll(async ({ browser }) => {
+  person = await createTestPerson(browser, sql, "keep");
+});
+
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(person.cookies);
+});
+
 test.afterAll(async () => {
+  await removeTestPeople(sql, [person.email]);
   await sql.end();
 });
 
@@ -402,7 +418,7 @@ function contactRows(page: Page) {
 }
 
 async function countContactsInDb() {
-  const [row] = await sql<{ count: string }[]>`select count(*) from contacts`;
+  const [row] = await sql<{ count: string }[]>`select count(*) from contacts where owner_id = ${person.ownerId}`;
   return Number(row.count);
 }
 
