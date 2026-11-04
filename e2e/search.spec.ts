@@ -4,7 +4,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
 
+import { createTestPerson, removeTestPeople, type TestPerson } from "./sign-in";
+
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+
+let person: TestPerson;
 
 const suffix = Date.now().toString(36);
 const tail = String(Date.now()).slice(-7);
@@ -38,10 +42,11 @@ async function search(page: Page, query: string) {
   await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe(query);
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
+  person = await createTestPerson(browser, sql, "search");
   const [found] = await sql<{ id: number }[]>`
-    insert into contacts (name, about, how_we_met, phone, email)
-    values (${`Глафира ${surname}`}, 'Сомелье', ${`Ходили вместе на ${trip} в 2022`}, ${phone}, ${email})
+    insert into contacts (owner_id, name, about, how_we_met, phone, email)
+    values (${person.ownerId}, ${`Глафира ${surname}`}, 'Сомелье', ${`Ходили вместе на ${trip} в 2022`}, ${phone}, ${email})
     returning id
   `;
   foundId = found.id;
@@ -52,18 +57,19 @@ test.beforeAll(async () => {
   `;
 
   const [mention] = await sql<{ id: number }[]>`
-    insert into contacts (name) values (${`Аврора Сводная-${suffix}`}) returning id
+    insert into contacts (owner_id, name) values (${person.ownerId}, ${`Аврора Сводная-${suffix}`}) returning id
   `;
   mentionId = mention.id;
   await sql`insert into notes (contact_id, body) values (${mentionId}, ${`Познакомила с Глафирой (${surname})`})`;
 });
 
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(person.cookies);
+});
+
 test.afterAll(async () => {
-  // Remove only the contacts this test created (their notes go with them)
-  const ids = [foundId, mentionId].filter(Boolean);
-  if (ids.length > 0) {
-    await sql`delete from contacts where id in ${sql(ids)}`;
-  }
+  // Remove only the person of this file with their contacts (the notes go with them)
+  await removeTestPeople(sql, [person.email]);
   await sql.end();
 });
 

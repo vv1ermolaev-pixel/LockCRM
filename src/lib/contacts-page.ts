@@ -34,14 +34,14 @@ export type ContactsPageData = {
 };
 
 // Everything the home page shows, read from its address as the browser sent it
-export async function loadContactsPage(params: SearchParams): Promise<ContactsPageData> {
+export async function loadContactsPage(userId: string, params: SearchParams): Promise<ContactsPageData> {
   const query = (firstParam(params.q) ?? "").trim();
   const page = parsePage(params.page);
   const addedId = Number(firstParam(params.added)) || null;
   const requestedGroupId = Number(firstParam(params.group)) || null;
 
   // The group is checked against the list first: one that is gone (deleted, or a stale link) means no filter
-  const groups = await listGroups();
+  const groups = await listGroups(userId);
   const group = groups.find((item) => item.id === requestedGroupId) ?? null;
   const groupId = group?.id ?? null;
 
@@ -50,12 +50,12 @@ export async function loadContactsPage(params: SearchParams): Promise<ContactsPa
   const pinnedId = addedId && !query && !groupId ? addedId : null;
 
   const [{ contacts, hasMore }, added, total, groupCount, foundCount, dueContacts] = await Promise.all([
-    listFirstContacts(query, groupId, { limit: page * PAGE_SIZE, excludeId: pinnedId }),
-    pinnedId ? getListContact(pinnedId) : undefined,
-    countContacts(),
-    groupId ? countContacts(groupId) : 0,
-    query ? countContacts(groupId, query) : 0,
-    query ? [] : listDueContacts(groupId),
+    listFirstContacts(userId, query, groupId, { limit: page * PAGE_SIZE, excludeId: pinnedId }),
+    pinnedId ? getListContact(userId, pinnedId) : undefined,
+    countContacts(userId),
+    groupId ? countContacts(userId, groupId) : 0,
+    query ? countContacts(userId, groupId, query) : 0,
+    query ? [] : listDueContacts(userId, groupId),
   ]);
   const scopeCount = group ? groupCount : total;
 

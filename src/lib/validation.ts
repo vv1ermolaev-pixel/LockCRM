@@ -11,6 +11,16 @@ const optionalText = (max: number, tooLongMessage: string) =>
     .max(max, tooLongMessage)
     .transform((value) => (value === "" ? null : value));
 
+export const LOGIN_EMAIL_ERROR = "Проверьте адрес почты";
+
+// The email a person logs in with: spaces trimmed, lowercase. The one rule for the login form, for a request that
+// skips the form, and for OWNER_EMAIL, so "Anna@Example.com" and "anna@example.com" are one user
+export const loginEmailSchema = z
+  .string({ error: LOGIN_EMAIL_ERROR })
+  .trim()
+  .toLowerCase()
+  .pipe(z.email({ error: LOGIN_EMAIL_ERROR }).max(254, LOGIN_EMAIL_ERROR));
+
 export const groupNameSchema = z.string().trim().min(1, "Укажите название").max(40, "Слишком длинно — до 40 символов");
 
 // Two names with the same key are the same group: case and "ё" do not count, as in the unique index on groups

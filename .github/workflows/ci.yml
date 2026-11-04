@@ -58,9 +58,26 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Catches the login emails of the tests: nothing is sent for real. The tests read them on port 8025
+      mailpit:
+        image: axllent/mailpit:v1.33.0
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres@localhost:5432/lockcrm
       E2E_BASE_URL: http://127.0.0.1:3000
+      # Login. The values are for this throwaway run only. OWNER_EMAIL is not needed: the database is empty
+      BETTER_AUTH_SECRET: ci-only-secret-for-the-throwaway-test-run
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      SMTP_URL: smtp://127.0.0.1:1025
+      MAIL_FROM: noreply@example.com
+      MAILPIT_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v7
 

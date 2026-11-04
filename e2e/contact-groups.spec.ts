@@ -5,7 +5,11 @@
 import { chromium, expect, test, type Browser, type Page } from "@playwright/test";
 import postgres from "postgres";
 
+import { createTestPerson, removeTestPeople, signIn, type TestPerson } from "./sign-in";
+
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+
+let person: TestPerson;
 
 const suffix = Date.now().toString(36);
 const groupName = `Теннис ${suffix}`;
@@ -46,10 +50,17 @@ async function addContact(page: Page, name: string, withGroup: boolean) {
   await expect(contactRows(page).filter({ hasText: name })).toContainText("Новый");
 }
 
+test.beforeAll(async ({ browser }) => {
+  person = await createTestPerson(browser, sql, "groups");
+});
+
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(person.cookies);
+});
+
 test.afterAll(async () => {
-  // Remove only what this test created; group membership goes with the contacts and the group
-  await sql`delete from contacts where name in (${memberName}, ${outsiderName})`;
-  await sql`delete from groups where name = ${groupName}`;
+  // Remove only what this file created: the person with their contacts and groups (membership goes with them)
+  await removeTestPeople(sql, [person.email]);
   await sql.end();
 });
 
@@ -139,7 +150,7 @@ test("contact groups: create, add a contact, filter the list", async ({ page }) 
     const otherBrowser = await openOtherBrowser();
     try {
       const otherPage = await otherBrowser.newPage({ baseURL: test.info().project.use.baseURL });
-      await otherPage.goto("/");
+      await signIn(otherPage, person.email);
       await groupFilter(otherPage).getByRole("link", { name: groupName, exact: true }).click();
       await expect(otherPage).toHaveURL(/[?&]group=\d+/);
       await expect(contactRows(otherPage)).toHaveCount(1);

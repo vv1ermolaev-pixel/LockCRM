@@ -22,5 +22,19 @@ services:
       timeout: 5s
       retries: 10
 
+  # Catches the login emails: nothing leaves the computer. Open http://localhost:8025 to read them
+  mailpit:
+    image: axllent/mailpit:v1.33.0
+    restart: unless-stopped
+    ports:
+      # Bound to localhost only, like the database
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres-data:

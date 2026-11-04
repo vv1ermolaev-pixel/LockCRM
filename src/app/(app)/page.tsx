@@ -9,10 +9,12 @@ import { GroupFilter } from "@/components/group-filter";
 import { Highlight } from "@/components/highlight";
 import { loadContactsPage } from "@/lib/contacts-page";
 import { contactForms, formatNumber, pluralize } from "@/lib/format";
+import { requireUserId } from "@/lib/session";
 
 export default async function ContactsPage({ searchParams }: PageProps<"/">) {
+  const userId = await requireUserId();
   const { query, page, groups, group, addedId, added, contacts, hasMore, total, scopeCount, listCount, dueContacts } =
-    await loadContactsPage(await searchParams);
+    await loadContactsPage(userId, await searchParams);
   const groupId = group?.id ?? null;
 
   return (

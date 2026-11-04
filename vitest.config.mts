@@ -12,6 +12,8 @@ export default defineConfig({
       "server-only": fromSrc("test/stubs/empty.ts"),
       // revalidatePath needs a running Next server; tests read the database directly, so there is nothing to refresh
       "next/cache": fromSrc("test/stubs/next-cache.ts"),
+      // headers() and cookies() need a request; the stub answers for the browser the test acts as
+      "next/headers": fromSrc("test/stubs/next-headers.ts"),
     },
   },
   test: {

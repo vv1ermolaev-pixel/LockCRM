@@ -51,12 +51,20 @@ export async function createTestDatabase(workingUrl: string, name: string) {
 
 const MIGRATIONS_FOLDER = "./drizzle";
 
-async function migrateTestDatabase(testUrl: string, migrationsFolder: string, { dropFirst }: { dropFirst: boolean }) {
+async function migrateTestDatabase(
+  testUrl: string,
+  migrationsFolder: string,
+  { dropFirst, ownerEmail }: { dropFirst: boolean; ownerEmail?: string },
+) {
   const client = postgres(testUrl, { max: 1, onnotice: () => {} });
   try {
     if (dropFirst) {
       await client`drop schema if exists public, drizzle cascade`;
       await client`create schema public`;
+    }
+    // The same way scripts/migrate.ts hands the owner's email to the migration that gives existing data an owner
+    if (ownerEmail) {
+      await client`select set_config('app.owner_email', ${ownerEmail}, false)`;
     }
     await migrate(drizzle(client), { migrationsFolder });
   } finally {
@@ -90,7 +98,8 @@ export async function resetTestDatabaseUpTo(testUrl: string, lastTag: string) {
   }
 }
 
-// What a deploy does to an existing database: the migrations not applied yet
-export async function applyPendingMigrations(testUrl: string) {
-  await migrateTestDatabase(testUrl, MIGRATIONS_FOLDER, { dropFirst: false });
+// What a deploy does to an existing database: the migrations not applied yet.
+// `ownerEmail` is OWNER_EMAIL of the server: only the migration that gives existing data an owner reads it
+export async function applyPendingMigrations(testUrl: string, { ownerEmail }: { ownerEmail?: string } = {}) {
+  await migrateTestDatabase(testUrl, MIGRATIONS_FOLDER, { dropFirst: false, ownerEmail });
 }

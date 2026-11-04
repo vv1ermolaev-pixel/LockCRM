@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   createContact,
@@ -10,11 +10,12 @@ import {
   setGroupColor,
   updateContact,
 } from "@/app/actions";
-import { countContacts, listContacts } from "@/lib/contacts";
-import { getContactGroupIds, listGroups } from "@/lib/groups";
 
+import { countContacts, getContactGroupIds, listContacts, listGroups, signInTestUser } from "./as-user";
 import { contactForm } from "./forms";
 import { addContact, addGroup, groupId } from "./scenario";
+
+beforeEach(signInTestUser);
 
 async function groupSizes() {
   return Object.fromEntries((await listGroups()).map((group) => [group.name, group.contactCount]));

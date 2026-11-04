@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createContact } from "@/app/actions";
-import { countContacts, listContacts } from "@/lib/contacts";
 
+import { countContacts, listContacts, signInTestUser } from "./as-user";
 import { contactForm } from "./forms";
+
+beforeEach(signInTestUser);
 
 describe("Main scenario", () => {
   it("shows a contact in the list right after it is added", async () => {

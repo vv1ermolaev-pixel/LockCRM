@@ -15,6 +15,11 @@ import {
   type SearchQuery,
 } from "@/lib/search";
 
+// Every query on contacts has this condition: a person sees and changes only their own
+export function ownedBy(userId: string) {
+  return eq(contacts.ownerId, userId);
+}
+
 // Case-insensitive and treats "ё" as "е", so "Петр" finds "Пётр"
 function normalizeForSearch(value: SQL | string) {
   return sql`replace(lower(${value}), 'ё', 'е')`;
@@ -147,6 +152,7 @@ export type ContactListPart = { contacts: ContactListItem[]; hasMore: boolean };
 // With a group, only the people in it; `excludeId` leaves one contact out (the new one shown above the list).
 // The order ends with the id, so it is stable and parts read one after another never overlap
 export async function listFirstContacts(
+  userId: string,
   query: string,
   groupId?: number | null,
   { limit, excludeId }: { limit?: number; excludeId?: number | null } = {},
@@ -164,7 +170,7 @@ export async function listFirstContacts(
     const listed = db
       .select(listFields)
       .from(contacts)
-      .where(and(contactInGroup(groupId), notExcluded))
+      .where(and(ownedBy(userId), contactInGroup(userId, groupId), notExcluded))
       .orderBy(asc(contacts.name), asc(contacts.id))
       .$dynamic();
     const { rows, hasMore } = trim(await (take === undefined ? listed : listed.limit(take)));
@@ -178,7 +184,7 @@ export async function listFirstContacts(
       bestNote: sql<string | null>`${bestNoteBody(search.words)}`,
     })
     .from(contacts)
-    .where(and(searchCondition(search), contactInGroup(groupId), notExcluded))
+    .where(and(ownedBy(userId), searchCondition(search), contactInGroup(userId, groupId), notExcluded))
     // People whose name has every word come first: searching "Маша" puts Маша above notes that mention her
     .orderBy(desc(nameHasAllWords(search.words)), asc(contacts.name), asc(contacts.id))
     .$dynamic();
@@ -196,31 +202,51 @@ export async function listFirstContacts(
 }
 
 // One contact as a row of the list: the new contact shown above it. Undefined when it is gone
-export async function getListContact(id: number): Promise<ContactListItem | undefined> {
-  const [contact] = await db.select(listFields).from(contacts).where(eq(contacts.id, id));
+export async function getListContact(userId: string, id: number): Promise<ContactListItem | undefined> {
+  const [contact] = await db
+    .select(listFields)
+    .from(contacts)
+    .where(and(eq(contacts.id, id), ownedBy(userId)));
   return contact;
 }
 
 // The whole list: with a group, only the people in it
-export async function listContacts(query: string, groupId?: number | null): Promise<ContactListItem[]> {
-  return (await listFirstContacts(query, groupId)).contacts;
+export async function listContacts(userId: string, query: string, groupId?: number | null): Promise<ContactListItem[]> {
+  return (await listFirstContacts(userId, query, groupId)).contacts;
 }
 
 // With a query, only the people it finds: the same condition as the list, so "Найдено: N" counts the whole result
-export async function countContacts(groupId?: number | null, query = "") {
+export async function countContacts(userId: string, groupId?: number | null, query = "") {
   const search = parseSearchQuery(query);
   const [row] = await db
     .select({ value: count() })
     .from(contacts)
-    .where(and(search.words.length > 0 ? searchCondition(search) : undefined, contactInGroup(groupId)));
+    .where(
+      and(
+        ownedBy(userId),
+        search.words.length > 0 ? searchCondition(search) : undefined,
+        contactInGroup(userId, groupId),
+      ),
+    );
   return row.value;
 }
 
-export async function getContact(id: number) {
-  const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+// A contact of somebody else is not found, like one that does not exist
+export async function getContact(userId: string, id: number) {
+  const [contact] = await db
+    .select()
+    .from(contacts)
+    .where(and(eq(contacts.id, id), ownedBy(userId)));
   return contact;
 }
 
-export async function listNotes(contactId: number) {
-  return db.select().from(notes).where(eq(notes.contactId, contactId)).orderBy(desc(notes.createdAt), desc(notes.id));
+// Notes are the owner's through their contact
+export async function listNotes(userId: string, contactId: number) {
+  const rows = await db
+    .select({ note: notes })
+    .from(notes)
+    .innerJoin(contacts, eq(contacts.id, notes.contactId))
+    .where(and(eq(notes.contactId, contactId), ownedBy(userId)))
+    .orderBy(desc(notes.createdAt), desc(notes.id));
+  return rows.map((row) => row.note);
 }

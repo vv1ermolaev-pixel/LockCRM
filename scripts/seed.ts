@@ -1,13 +1,14 @@
-// Fills an empty database with realistic test contacts.
-// Never deletes anything: if contacts already exist, it stops.
+// Fills an empty database with realistic test contacts. They belong to the user whose email is OWNER_EMAIL.
+// Never deletes anything: if that user already has contacts, it stops.
 // Usage: pnpm db:seed [count]   (default: 1000)
 
-import { asc, count, sql } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-import { contactGroups, contacts, groups, notes } from "../src/db/schema";
+import { contactGroups, contacts, groups, notes, users } from "../src/db/schema";
 import { contactFrequencies } from "../src/lib/contact-frequency";
+import { loginEmailSchema } from "../src/lib/validation";
 
 const CONTACT_COUNT = Number(process.argv[2] ?? 1000);
 const BATCH_SIZE = 200;
@@ -314,7 +315,7 @@ const now = Date.now();
 const randomDateBetween = (from: number, to: number) => new Date(from + random() * (to - from));
 
 type SeedContact = {
-  contact: typeof contacts.$inferInsert;
+  contact: Omit<typeof contacts.$inferInsert, "ownerId">;
   notes: Array<{ body: string; createdAt: Date }>;
 };
 
@@ -381,13 +382,34 @@ async function main() {
     throw new Error(`Contact count must be a positive integer, got: ${process.argv[2]}`);
   }
 
+  const rawOwnerEmail = process.env.OWNER_EMAIL?.trim();
+  if (!rawOwnerEmail) {
+    throw new Error("OWNER_EMAIL is not set: the demo contacts need an owner. Add it to .env. Nothing was changed.");
+  }
+  const ownerEmail = loginEmailSchema.safeParse(rawOwnerEmail);
+  if (!ownerEmail.success) {
+    throw new Error("OWNER_EMAIL is not a valid email address. Nothing was changed.");
+  }
+
   const client = postgres(databaseUrl, { max: 1 });
   const db = drizzle(client);
 
   try {
-    const [{ value: existing }] = await db.select({ value: count() }).from(contacts);
+    const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.email, ownerEmail.data));
+    if (!owner) {
+      throw new Error(
+        "There is no user with the email from OWNER_EMAIL. Set OWNER_EMAIL before the migrations run, " +
+          "or log in with that email once, then run the seed again. Nothing was changed.",
+      );
+    }
+    const ownerId = owner.id;
+
+    const [{ value: existing }] = await db
+      .select({ value: count() })
+      .from(contacts)
+      .where(eq(contacts.ownerId, ownerId));
     if (existing > 0) {
-      console.log(`Database already has ${existing} contacts, seed skipped. Nothing was changed.`);
+      console.log(`The owner already has ${existing} contacts, seed skipped. Nothing was changed.`);
       return;
     }
 
@@ -399,18 +421,26 @@ async function main() {
       for (const group of seedGroups) {
         await tx
           .insert(groups)
-          .values({ ...group, position: sql`(select coalesce(max(${groups.position}), 0) + 1 from ${groups})` })
+          .values({
+            ...group,
+            ownerId,
+            position: sql`(select coalesce(max(${groups.position}), 0) + 1 from ${groups} where ${groups.ownerId} = ${ownerId})`,
+          })
           .onConflictDoNothing();
       }
       const groupIds = (
-        await tx.select({ id: groups.id }).from(groups).orderBy(asc(groups.position), asc(groups.id))
+        await tx
+          .select({ id: groups.id })
+          .from(groups)
+          .where(eq(groups.ownerId, ownerId))
+          .orderBy(asc(groups.position), asc(groups.id))
       ).map((group) => group.id);
 
       for (let start = 0; start < generated.length; start += BATCH_SIZE) {
         const batch = generated.slice(start, start + BATCH_SIZE);
         const inserted = await tx
           .insert(contacts)
-          .values(batch.map((item) => item.contact))
+          .values(batch.map((item) => ({ ...item.contact, ownerId })))
           .returning({ id: contacts.id, name: contacts.name });
 
         const batchNotes = inserted.flatMap((row, index) => {
