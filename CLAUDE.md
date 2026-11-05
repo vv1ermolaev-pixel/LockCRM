@@ -24,7 +24,7 @@
 - Next.js (App Router), TypeScript
 - React, Tailwind CSS, shadcn/ui; цвета, шрифты и отступы - только через дизайн-токены
 - PostgreSQL, Drizzle: схема и миграции в коде
-- Better Auth, вход по MagicLink
+- Better Auth, вход по MagicLink и паролю
 - Vitest, Playwright
 - pnpm, `pnpm-lock.yaml` в git
 - Docker: локально только Postgres и почтовая заглушка Mailpit, образ приложения собирает CI

@@ -101,6 +101,7 @@ export async function cookies() {
       const stored = current.cookies.get(name);
       return stored ? { name, value: stored.value } : undefined;
     },
+    getAll: () => [...current.cookies].map(([name, { value }]) => ({ name, value })),
     set: (name: string, value: string, options: CookieOptions = {}) => {
       current.cookies.set(name, { value, ...options });
     },

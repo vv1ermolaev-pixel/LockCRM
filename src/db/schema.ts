@@ -107,6 +107,18 @@ export const loginEmailSends = pgTable(
   (table) => [index("login_email_sends_email_sent_at_idx").on(table.email, table.sentAt)],
 );
 
+// One row per password check of an address, for the limit of 5 failed attempts in 15 minutes. A success removes
+// the rows of the address; rows older than that are deleted
+export const loginPasswordAttempts = pgTable(
+  "login_password_attempts",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    email: text("email").notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("login_password_attempts_email_attempted_at_idx").on(table.email, table.attemptedAt)],
+);
+
 export const contacts = pgTable(
   "contacts",
   {

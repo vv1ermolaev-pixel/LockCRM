@@ -1,14 +1,16 @@
 import { sql } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { requestLoginLink } from "@/app/login/actions";
+import { changePassword, requestEmailChange, setFirstPassword } from "@/app/(app)/settings/actions";
+import { requestLoginLink, requestPasswordResetLink, resetPassword, signInWithPassword } from "@/app/login/actions";
 import { db } from "@/db";
-import { verifications } from "@/db/schema";
+import { accounts, verifications } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
-import { lastEmailTo, loginLinkIn } from "./mailpit";
-import { openLoginLink } from "./sign-in";
-import { headers } from "./stubs/next-headers";
+import { lastEmailTo, loginLinkIn, waitForBackgroundEmails, waitForEmailTo } from "./mailpit";
+import { loginForm, PASSWORD, signInWithNewPassword } from "./password";
+import { openLoginLink, signInAs } from "./sign-in";
+import { headers, switchBrowser } from "./stubs/next-headers";
 
 // Personal data must not reach the server log: the address of a person and the link that logs them in
 const EMAIL = "anna.private@example.com";
@@ -84,5 +86,96 @@ describe("The server log during login", () => {
 
     expect(log.join("\n")).not.toContain("anna.private");
     expect(log.join("\n")).not.toContain(new URL(link).searchParams.get("token"));
+  });
+});
+
+describe("The server log around passwords", { timeout: 60_000 }, () => {
+  const NEW_PASSWORD = "другая длинная фраза";
+
+  function expectNothingPrivate(log: string[], ...secrets: string[]) {
+    const text = log.join("\n");
+    expect(text).not.toContain("anna.private");
+    expect(text).not.toContain("new.private");
+    expect(text).not.toContain("scrypt$");
+    expect(text).not.toMatch(/token=|reset-password\//);
+    for (const secret of [PASSWORD, NEW_PASSWORD, ...secrets]) expect(text).not.toContain(secret);
+  }
+
+  function changeForm(currentPassword: string, newPassword: string) {
+    const formData = new FormData();
+    formData.set("currentPassword", currentPassword);
+    formData.set("newPassword", newPassword);
+    return formData;
+  }
+
+  it("holds nothing private after wrong passwords, a block and an unknown address", async () => {
+    await signInWithNewPassword(EMAIL);
+    switchBrowser();
+    const log = captureConsole();
+
+    for (let i = 0; i < 6; i++) await signInWithPassword(loginForm(EMAIL, PASSWORD + i));
+    await signInWithPassword(loginForm("new.private@example.com", PASSWORD));
+    await signInWithPassword(loginForm("anna.private@", PASSWORD));
+
+    expectNothingPrivate(log);
+  });
+
+  it("holds nothing private when the mail service does not take the email to change the password", async () => {
+    await signInWithNewPassword(EMAIL);
+    switchBrowser();
+    const smtpUrl = process.env.SMTP_URL;
+    process.env.SMTP_URL = "smtp://127.0.0.1:1";
+    const log = captureConsole();
+
+    try {
+      await requestPasswordResetLink(emailForm(EMAIL));
+      await vi.waitFor(() => expect(log.length).toBeGreaterThan(0), { timeout: 10_000 });
+    } finally {
+      process.env.SMTP_URL = smtpUrl;
+    }
+
+    expectNothingPrivate(log);
+  });
+
+  it("holds nothing private when a password is set, changed and reset", async () => {
+    await signInAs(EMAIL);
+    const log = captureConsole();
+    const first = new FormData();
+    first.set("password", PASSWORD);
+
+    await setFirstPassword(first);
+    await changePassword(changeForm("неверный пароль", NEW_PASSWORD));
+    await changePassword(changeForm(PASSWORD, NEW_PASSWORD));
+    switchBrowser();
+    await requestPasswordResetLink(emailForm(EMAIL));
+    const link = loginLinkIn(await waitForEmailTo(EMAIL, { subject: "Смена пароля в Личной CRM" }));
+    const token = new URL(link).pathname.split("/").at(-1)!;
+    const resetForm = new FormData();
+    resetForm.set("token", token);
+    resetForm.set("password", PASSWORD);
+    await resetPassword(resetForm);
+    await resetPassword(resetForm);
+    await waitForBackgroundEmails();
+
+    const [{ password: hash }] = await db.select({ password: accounts.password }).from(accounts);
+    expectNothingPrivate(log, token, hash!);
+  });
+
+  it("holds nothing private when the email is changed", async () => {
+    await signInWithNewPassword(EMAIL);
+    const log = captureConsole();
+    const form = new FormData();
+    form.set("newEmail", "new.private@example.com");
+    form.set("currentPassword", "неверный пароль");
+
+    await requestEmailChange(form);
+    form.set("currentPassword", PASSWORD);
+    await requestEmailChange(form);
+    const link = loginLinkIn(await waitForEmailTo("new.private@example.com", { subject: "Смена почты в Личной CRM" }));
+    await auth.handler(new Request(link));
+    await auth.handler(new Request(link));
+    await waitForBackgroundEmails();
+
+    expectNothingPrivate(log, new URL(link).searchParams.get("token")!);
   });
 });

@@ -76,7 +76,7 @@ test("main scenario works end to end", async ({ page }) => {
     await dialog.getByLabel("Кто это").fill("Организатор конференции");
     await dialog.getByLabel("Откуда знакомы").fill("Познакомились на конференции в Казани");
     await dialog.getByLabel("Телефон").fill("+7 900 111-22-33");
-    await dialog.getByLabel("Почта").fill("vasilisa@example.com");
+    await dialog.getByLabel("Почта", { exact: true }).fill("vasilisa@example.com");
     await dialog.getByRole("button", { name: "Добавить" }).click();
 
     await expect(dialog).toBeHidden();

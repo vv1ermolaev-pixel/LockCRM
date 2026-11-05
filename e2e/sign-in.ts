@@ -28,6 +28,25 @@ export async function loginLinkFor(email: string, { after = 0 }: { after?: numbe
   return link!;
 }
 
+// The link from the newest email with this subject: emails about the password go in the background,
+// and other emails to the address may arrive around them
+export async function emailLinkFor(email: string, subject: string) {
+  let link: string | undefined;
+  const query = `to:${email} subject:"${subject}"`;
+  await expect(async () => {
+    const found = (await (await fetch(`${mailpitUrl()}/api/v1/search?query=${encodeURIComponent(query)}`)).json()) as {
+      messages: { ID: string }[];
+    };
+    expect(found.messages.length).toBeGreaterThan(0);
+    const message = (await (await fetch(`${mailpitUrl()}/api/v1/message/${found.messages[0].ID}`)).json()) as {
+      Text: string;
+    };
+    link = message.Text.match(/https?:\/\/\S+/)?.[0];
+    expect(link).toBeTruthy();
+  }).toPass({ timeout: 15_000 });
+  return link!;
+}
+
 // How many login emails the address has received so far
 export async function loginEmailCount(email: string) {
   const found = (await (
@@ -44,7 +63,7 @@ export async function openLink(page: Page, link: string) {
 }
 
 export async function requestLink(page: Page, email: string) {
-  await page.getByLabel("Почта").fill(email);
+  await page.getByLabel("Почта", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Получить ссылку для входа" }).click();
   await expect(page.getByText("Проверьте почту", { exact: true })).toBeVisible();
 }

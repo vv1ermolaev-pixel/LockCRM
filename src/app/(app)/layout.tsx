@@ -23,9 +23,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Logo />
         </Link>
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          <span className="min-w-0 truncate text-13 text-copy-muted sm:text-15" title={user.email}>
-            {user.email}
-          </span>
+          <Link
+            href="/settings"
+            title={user.email}
+            className="flex min-h-11 min-w-0 items-center rounded-12 text-13 text-copy-muted underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:text-15"
+          >
+            <span className="truncate">{user.email}</span>
+          </Link>
           <SignOutButton />
         </div>
       </header>

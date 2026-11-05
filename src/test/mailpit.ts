@@ -46,6 +46,26 @@ export async function lastEmailTo(address: string) {
   return (await emailsTo(address))[0];
 }
 
+// For emails that go in the background: the answer of the action does not mean the email is there yet.
+// `count` waits for that many emails with the subject. Gives the newest one
+export async function waitForEmailTo(
+  address: string,
+  { subject, count = 1 }: { subject?: string; count?: number } = {},
+) {
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const found = (await emailsTo(address)).filter((email) => !subject || email.subject === subject);
+    if (found.length >= count) return found[0];
+    if (Date.now() > deadline) throw new Error(`No email «${subject ?? "any"}» to ${address}`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+// Enough for an email in the background to arrive, for the tests that check it did not
+export function waitForBackgroundEmails() {
+  return new Promise((resolve) => setTimeout(resolve, 300));
+}
+
 // The login link in the plain text version of the email
 export function loginLinkIn(email: Email) {
   const link = email.text.match(/https?:\/\/\S+/)?.[0];
