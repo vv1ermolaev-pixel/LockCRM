@@ -36,6 +36,13 @@
       "when": 1793787636006,
       "tag": "0004_users_and_owners",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793895192274,
+      "tag": "0005_login_password_attempts",
+      "breakpoints": true
     }
   ]
 }

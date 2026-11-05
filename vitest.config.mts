@@ -14,10 +14,13 @@ export default defineConfig({
       "next/cache": fromSrc("test/stubs/next-cache.ts"),
       // headers() and cookies() need a request; the stub answers for the browser the test acts as
       "next/headers": fromSrc("test/stubs/next-headers.ts"),
+      "next/headers.js": fromSrc("test/stubs/next-headers.ts"),
     },
   },
   test: {
     environment: "node",
+    // Better Auth goes through the aliases above too: the cookies it sets in a server action reach the test browser
+    server: { deps: { inline: ["better-auth"] } },
     include: ["src/**/*.test.ts"],
     globalSetup: ["src/test/global-setup.ts"],
     setupFiles: ["src/test/setup.ts"],

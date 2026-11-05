@@ -21,6 +21,12 @@ export const loginEmailSchema = z
   .toLowerCase()
   .pipe(z.email({ error: LOGIN_EMAIL_ERROR }).max(254, LOGIN_EMAIL_ERROR));
 
+// A new password. No trim: spaces are a part of it. Only the length is required, any characters go
+export const passwordSchema = z
+  .string({ error: "Пароль должен быть не короче 8 символов" })
+  .min(8, "Пароль должен быть не короче 8 символов")
+  .max(128, "Пароль должен быть не длиннее 128 символов");
+
 export const groupNameSchema = z.string().trim().min(1, "Укажите название").max(40, "Слишком длинно — до 40 символов");
 
 // Two names with the same key are the same group: case and "ё" do not count, as in the unique index on groups

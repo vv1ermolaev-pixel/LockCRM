@@ -70,8 +70,10 @@ test("a contact of A is not visible to B", async ({ browser }) => {
 test("without login every page is the login page", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Вход в приложение" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Вход по ссылке" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Почта и пароль" })).toBeVisible();
   await expect(page.getByText("Введите почту — пришлём ссылку для входа. Пароль не нужен.")).toBeVisible();
-  await expect(page.getByLabel("Почта")).toBeVisible();
+  await expect(page.getByLabel("Почта", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Получить ссылку для входа" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Контакты" })).toHaveCount(0);
 
@@ -85,11 +87,11 @@ test("the health check answers without login", async ({ request }) => {
 
 test("a wrong email shows an error under the field and sends nothing", async ({ page }) => {
   await page.goto("/login");
-  await page.getByLabel("Почта").fill("anna@");
+  await page.getByLabel("Почта", { exact: true }).fill("anna@");
   await page.getByRole("button", { name: "Получить ссылку для входа" }).click();
 
   await expect(page.getByText("Проверьте адрес почты")).toBeVisible();
-  await expect(page.getByLabel("Почта")).toBeVisible();
+  await expect(page.getByLabel("Почта", { exact: true })).toBeVisible();
   await expect(page.getByText("Проверьте почту", { exact: true })).toHaveCount(0);
 });
 
@@ -103,7 +105,7 @@ test("after sending: «Проверьте почту», and «Ввести др�
   await page.getByRole("button", { name: "Ввести другую почту" }).click();
 
   await expect(page.getByRole("heading", { name: "Вход в приложение" })).toBeVisible();
-  await expect(page.getByLabel("Почта")).toHaveValue(emailC);
+  await expect(page.getByLabel("Почта", { exact: true })).toHaveValue(emailC);
 });
 
 test("a used link opens «Ссылка устарела» with the email, and «Отправить ссылку повторно» sends a new one", async ({
@@ -125,7 +127,7 @@ test("a used link opens «Ссылка устарела» with the email, and «
     await openLink(page, link);
     await expect(page.getByRole("heading", { name: "Ссылка устарела" })).toBeVisible();
     await expect(page.getByText("Запросите новую — она придёт на почту.")).toBeVisible();
-    await expect(page.getByLabel("Почта")).toHaveValue(email);
+    await expect(page.getByLabel("Почта", { exact: true })).toHaveValue(email);
 
     const before = await loginEmailCount(email);
     await page.getByRole("button", { name: "Отправить ссылку повторно" }).click();
@@ -151,7 +153,7 @@ test("the 4th request in 10 minutes shows «Слишком часто, попр�
   await page.getByRole("button", { name: "Получить ссылку для входа" }).click();
 
   await expect(page.getByText("Слишком часто, попробуйте через несколько минут")).toBeVisible();
-  await expect(page.getByLabel("Почта")).toHaveValue(email);
+  await expect(page.getByLabel("Почта", { exact: true })).toHaveValue(email);
   expect(await loginEmailCount(email)).toBe(3);
 });
 
@@ -171,9 +173,9 @@ test("an old link opened in another browser shows «Ссылка устарел�
     await openLink(phonePage, link);
 
     await expect(phonePage.getByRole("heading", { name: "Ссылка устарела" })).toBeVisible();
-    await expect(phonePage.getByLabel("Почта")).toHaveValue("");
+    await expect(phonePage.getByLabel("Почта", { exact: true })).toHaveValue("");
     // The button works as «Получить ссылку для входа» once the email is typed
-    await phonePage.getByLabel("Почта").fill(email);
+    await phonePage.getByLabel("Почта", { exact: true }).fill(email);
     await phonePage.getByRole("button", { name: "Отправить ссылку повторно" }).click();
     await expect(phonePage.getByText("Проверьте почту", { exact: true })).toBeVisible();
   } finally {
@@ -193,7 +195,7 @@ test("a link with a part of its characters gone opens «Ссылка устар�
   await openLink(page, link.toString());
 
   await expect(page.getByRole("heading", { name: "Ссылка устарела" })).toBeVisible();
-  await expect(page.getByLabel("Почта")).toHaveValue(email);
+  await expect(page.getByLabel("Почта", { exact: true })).toHaveValue(email);
 });
 
 test("a logged-in person who opens the login page lands on the home page", async ({ browser }) => {
