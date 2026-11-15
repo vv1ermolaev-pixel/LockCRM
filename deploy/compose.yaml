@@ -1,6 +1,6 @@
-# Production stack on the server, docker compose project "prod".
-# Used only through the scripts in deploy/ (deploy.sh, rollback.sh, restore.sh, seed.sh): they set APP_IMAGE
-# and read secrets from /srv/lockcrm/.env (mode 600).
+# The stack of one environment on the server: docker compose project "prod" or "staging".
+# Used only through the scripts in deploy/ (deploy.sh, rollback.sh, restore.sh, seed.sh): they pick the environment,
+# set APP_IMAGE and APP_PORT and read secrets from the environment's .env (mode 600), see deploy/common.sh.
 
 # Container logs are capped: at most 3 files of 10 MB per container
 x-logging: &logging
@@ -15,6 +15,8 @@ services:
     restart: unless-stopped
     # Errors in the log without DETAIL: for a rejected row Postgres puts the whole row there, with the contact's data
     command: ["postgres", "-c", "log_error_verbosity=terse"]
+    # Two environments share one small server: a container that grows past its limit is stopped, not the server
+    mem_limit: 256m
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -36,6 +38,7 @@ services:
     image: ${APP_IMAGE:?APP_IMAGE is set by deploy/deploy.sh}
     profiles: ["tools"]
     command: ["node", "scripts/migrate.mjs"]
+    mem_limit: 256m
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
       # Optional: only the migration that gives existing contacts an owner (0004) and the demo data read it.
@@ -50,6 +53,7 @@ services:
   app:
     image: ${APP_IMAGE:?APP_IMAGE is set by deploy/deploy.sh}
     restart: unless-stopped
+    mem_limit: 512m
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
       # Login: without these the app cannot let anybody in or send the link
@@ -59,7 +63,8 @@ services:
       MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in .env}
     ports:
       # Localhost only: the outside world reaches the app through nginx (HTTPS)
-      - "127.0.0.1:3000:3000"
+      # Each environment on its own port: prod 3000, staging 3001
+      - "127.0.0.1:${APP_PORT:?APP_PORT is set by deploy/common.sh}:3000"
     depends_on:
       db:
         condition: service_healthy
