@@ -1,18 +1,11 @@
 name: Deploy
 
-# Every push to main: build the image -> push to GHCR -> deploy on the server.
+# Every push to main: build the image -> push to GHCR -> deploy the same image to staging and to prod.
+# The two deploys are independent: a failed staging deploy does not stop prod, and the other way round.
 # The server side lives in deploy/: this workflow only copies it and calls deploy.sh.
 on:
   push:
     branches: [main]
-
-# One deploy at a time: a newer push waits until the running deploy finishes
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
-env:
-  APP_URL: https://app.funkicrm.ru
 
 jobs:
   build:
@@ -50,15 +43,32 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
+    name: deploy (${{ matrix.environment }})
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: prod
+            path: /srv/lockcrm
+            url: https://app.funkicrm.ru
+          - environment: staging
+            path: /srv/lockcrm-staging
+            url: https://test-app.funkicrm.ru
+    # One deploy per environment at a time: a newer push waits until the running deploy finishes
+    concurrency:
+      group: deploy-${{ matrix.environment }}
+      cancel-in-progress: false
     permissions:
       contents: read
       # The server pulls the image with this job's short-lived token
       packages: read
     env:
-      DEPLOY_PATH: /srv/lockcrm
+      DEPLOY_ENV: ${{ matrix.environment }}
+      DEPLOY_PATH: ${{ matrix.path }}
+      APP_URL: ${{ matrix.url }}
     steps:
       - uses: actions/checkout@v7
 
@@ -83,6 +93,7 @@ jobs:
             StrictHostKeyChecking yes
           EOF
 
+      # Every environment has its own copy of deploy/: two deploys at once do not replace each other's files
       - name: Copy deploy scripts to the server
         run: |
           tar -czf - deploy | ssh server "set -e; cd $DEPLOY_PATH; rm -rf deploy.new; mkdir deploy.new; tar -xzf - -C deploy.new --strip-components=1; rm -rf deploy; mv deploy.new deploy"
@@ -93,4 +104,4 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          printf '%s %s\n' "$REGISTRY_USER" "$REGISTRY_TOKEN" | ssh server "bash $DEPLOY_PATH/deploy/deploy.sh $IMAGE $APP_URL"
+          printf '%s %s\n' "$REGISTRY_USER" "$REGISTRY_TOKEN" | ssh server "bash $DEPLOY_PATH/deploy/deploy.sh $DEPLOY_ENV $IMAGE $APP_URL"

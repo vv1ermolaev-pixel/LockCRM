@@ -1,14 +1,38 @@
 # Shared helpers for the scripts in deploy/. Sourced, not run directly.
 # shellcheck disable=SC2034  # the variables below are used by the scripts that source this file
 
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="$APP_DIR/.env"
-# Every successfully deployed image, one per line; the last line is the current version
-RELEASES_FILE="$APP_DIR/releases.log"
-LOCAL_HEALTH_URL="http://127.0.0.1:3000/health"
-# Database dumps: personal data, so only the owner can read them
-BACKUP_DIR="$APP_DIR/backups"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Folder of every environment on the server: its .env, releases.log and its own copy of deploy/
+PROD_DIR="/srv/lockcrm"
+STAGING_DIR="/srv/lockcrm-staging"
+# Production database dumps: personal data, so only the owner can read them. The staging database is loaded from them
+PROD_BACKUP_DIR="$PROD_DIR/backups"
 BACKUP_KEEP=30
+
+# Picks the environment every other function works with. Every script calls it first:
+#   use_env <prod|staging>
+use_env() {
+  ENV_NAME="$1"
+  case "$ENV_NAME" in
+    prod)
+      APP_DIR="$PROD_DIR"
+      APP_PORT=3000
+      ;;
+    staging)
+      APP_DIR="$STAGING_DIR"
+      APP_PORT=3001
+      ;;
+    *) fail "unknown environment \"$ENV_NAME\": use prod or staging" ;;
+  esac
+  ENV_FILE="$APP_DIR/.env"
+  # Every successfully deployed image, one per line; the last line is the current version
+  RELEASES_FILE="$APP_DIR/releases.log"
+  BACKUP_DIR="$APP_DIR/backups"
+  LOCAL_HEALTH_URL="http://127.0.0.1:$APP_PORT/health"
+  # compose.yaml publishes the app on this localhost port
+  export APP_PORT
+}
 
 log() {
   printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"
@@ -19,8 +43,9 @@ fail() {
   exit 1
 }
 
+# The project name keeps the environments apart: own containers, own network, own database volume
 compose() {
-  docker compose -p prod -f "$APP_DIR/deploy/compose.yaml" --env-file "$ENV_FILE" "$@"
+  docker compose -p "$ENV_NAME" -f "$SCRIPT_DIR/compose.yaml" --env-file "$ENV_FILE" "$@"
 }
 
 check_env_file() {
@@ -58,7 +83,26 @@ running_image() {
   fi
 }
 
-# Dumps the production database into $BACKUP_DIR and sets BACKUP_FILE to the new dump.
+# Image a deploy is bringing in right now; written by deploy.sh, removed when it ends
+DEPLOYING_FILE_NAME="deploying.image"
+
+# Images that must stay on the server: the current and the previous version of every environment (a rollback
+# needs them) and the image of a deploy that is still running. The environments share the server's images,
+# so a cleanup must keep the other environment's ones too
+kept_images() {
+  local dir
+  for dir in "$PROD_DIR" "$STAGING_DIR"; do
+    if [ -f "$dir/releases.log" ]; then
+      # Newest first, each image once, the first two
+      tac "$dir/releases.log" | awk 'NF && !seen[$0]++ && ++count <= 2'
+    fi
+    if [ -f "$dir/$DEPLOYING_FILE_NAME" ]; then
+      cat "$dir/$DEPLOYING_FILE_NAME"
+    fi
+  done
+}
+
+# Dumps the environment's database into $BACKUP_DIR and sets BACKUP_FILE to the new dump.
 #   backup_db <reason> <app version running now>
 # Returns non-zero instead of exiting, so the caller decides what to do on failure.
 backup_db() {
