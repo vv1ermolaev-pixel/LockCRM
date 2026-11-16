@@ -1,3 +1,4 @@
+import { noBirthDatePart } from "@/lib/birthdays";
 import { noContactFrequency } from "@/lib/contact-frequency";
 
 export type ContactFormFields = {
@@ -6,6 +7,10 @@ export type ContactFormFields = {
   howWeMet?: string;
   phone?: string;
   email?: string;
+  // As the form sends them: the day and the month from their lists ("none" for «—»), the year as typed
+  birthDay?: string;
+  birthMonth?: string;
+  birthYear?: string;
   contactFrequency?: string;
   groupIds?: number[];
   newGroups?: string[];
@@ -20,6 +25,9 @@ export function contactForm({ groupIds = [], newGroups = [], ...fields }: Contac
   formData.set("howWeMet", fields.howWeMet ?? "");
   formData.set("phone", fields.phone ?? "");
   formData.set("email", fields.email ?? "");
+  formData.set("birthDay", fields.birthDay ?? noBirthDatePart);
+  formData.set("birthMonth", fields.birthMonth ?? noBirthDatePart);
+  formData.set("birthYear", fields.birthYear ?? "");
   formData.set("contactFrequency", fields.contactFrequency ?? noContactFrequency);
   for (const id of groupIds) formData.append("groupIds", String(id));
   for (const name of newGroups) formData.append("newGroups", name);

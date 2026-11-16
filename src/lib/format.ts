@@ -36,6 +36,40 @@ export function formatCalendarDay(day: string, today: string) {
   return year === today.slice(0, 4) ? text : `${text} ${year}`;
 }
 
+// A day and month -> "14 марта". A leap year stands in for an unknown year, so 29 February exists
+function formatDayMonth(day: number, month: number, year?: number | null) {
+  return dayMonthFormat.format(new Date(Date.UTC(year ?? 2000, month - 1, day)));
+}
+
+// "14 марта 1990", or "14 марта" when the year is not known
+export function formatBirthDate({ day, month, year }: { day: number; month: number; year: number | null }) {
+  const text = formatDayMonth(day, month, year);
+  return year === null ? text : `${text} ${year}`;
+}
+
+// "21 год", "22 года", "25 лет"
+export function formatAge(years: number) {
+  return pluralize(years, ["год", "года", "лет"]);
+}
+
+// When the birthday is, for a row of "Скоро день рождения": "Сегодня · исполняется 35", "Завтра, 17 ноября · исполнится 40",
+// "Через 5 дней, 21 ноября". The age only when the year is known
+export function formatBirthdayWhen({
+  daysUntil,
+  date,
+  turningAge,
+}: {
+  daysUntil: number;
+  date: { year: number; month: number; day: number };
+  turningAge: number | null;
+}) {
+  const dayMonth = formatDayMonth(date.day, date.month, date.year);
+  if (daysUntil === 0) return turningAge === null ? "Сегодня" : `Сегодня · исполняется ${turningAge}`;
+  const when =
+    daysUntil === 1 ? `Завтра, ${dayMonth}` : `Через ${pluralize(daysUntil, ["день", "дня", "дней"])}, ${dayMonth}`;
+  return turningAge === null ? when : `${when} · исполнится ${turningAge}`;
+}
+
 export function formatDateTime(date: Date) {
   return dateTimeFormat.format(date);
 }

@@ -12,6 +12,7 @@ import { loadContactsPage as loadContactsPageOf } from "@/lib/contacts-page";
 import { getContactGroupIds as getContactGroupIdsOf, listGroups as listGroupsOf } from "@/lib/groups";
 import { listDueContacts as listDueContactsOf } from "@/lib/keep-in-touch";
 import { getCurrentUser } from "@/lib/session";
+import { listUpcomingBirthdays as listUpcomingBirthdaysOf } from "@/lib/upcoming-birthdays";
 
 import { signInAs } from "./sign-in";
 
@@ -57,3 +58,7 @@ export const getContactGroupIds = async (
 export const listDueContacts = async (
   ...args: Parameters<typeof listDueContactsOf> extends [string, ...infer Rest] ? Rest : never
 ) => listDueContactsOf(await currentUserId(), ...args);
+
+export const listUpcomingBirthdays = async (
+  ...args: Parameters<typeof listUpcomingBirthdaysOf> extends [string, ...infer Rest] ? Rest : never
+) => listUpcomingBirthdaysOf(await currentUserId(), ...args);

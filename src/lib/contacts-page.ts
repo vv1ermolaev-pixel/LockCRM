@@ -1,9 +1,11 @@
 import "server-only";
 
+import { moscowToday } from "@/lib/birthdays";
 import { countContacts, getListContact, listFirstContacts, type ContactListItem } from "@/lib/contacts";
 import { listGroups, type GroupListItem } from "@/lib/groups";
 import { listDueContacts, type DueContact } from "@/lib/keep-in-touch";
 import { PAGE_SIZE, parsePage } from "@/lib/pagination";
+import { listUpcomingBirthdays, type UpcomingBirthday } from "@/lib/upcoming-birthdays";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -31,6 +33,8 @@ export type ContactsPageData = {
   listCount: number;
   // The "Пора связаться" block: never split into parts, and not read while a search is on (it is hidden then)
   dueContacts: DueContact[];
+  // The "Скоро день рождения" block, by the same rules: all of it, the chosen group only, empty while a search is on
+  upcomingBirthdays: UpcomingBirthday[];
 };
 
 // Everything the home page shows, read from its address as the browser sent it
@@ -49,14 +53,16 @@ export async function loadContactsPage(userId: string, params: SearchParams): Pr
   // With a search or a group it stays in its place by name
   const pinnedId = addedId && !query && !groupId ? addedId : null;
 
-  const [{ contacts, hasMore }, added, total, groupCount, foundCount, dueContacts] = await Promise.all([
-    listFirstContacts(userId, query, groupId, { limit: page * PAGE_SIZE, excludeId: pinnedId }),
-    pinnedId ? getListContact(userId, pinnedId) : undefined,
-    countContacts(userId),
-    groupId ? countContacts(userId, groupId) : 0,
-    query ? countContacts(userId, groupId, query) : 0,
-    query ? [] : listDueContacts(userId, groupId),
-  ]);
+  const [{ contacts, hasMore }, added, total, groupCount, foundCount, dueContacts, upcomingBirthdays] =
+    await Promise.all([
+      listFirstContacts(userId, query, groupId, { limit: page * PAGE_SIZE, excludeId: pinnedId }),
+      pinnedId ? getListContact(userId, pinnedId) : undefined,
+      countContacts(userId),
+      groupId ? countContacts(userId, groupId) : 0,
+      query ? countContacts(userId, groupId, query) : 0,
+      query ? [] : listDueContacts(userId, groupId),
+      query ? [] : listUpcomingBirthdays(userId, groupId, moscowToday()),
+    ]);
   const scopeCount = group ? groupCount : total;
 
   return {
@@ -72,5 +78,6 @@ export async function loadContactsPage(userId: string, params: SearchParams): Pr
     scopeCount,
     listCount: query ? foundCount : scopeCount,
     dueContacts,
+    upcomingBirthdays,
   };
 }

@@ -7,14 +7,28 @@ import { DueContacts } from "@/components/due-contacts";
 import { EmptyState } from "@/components/empty-state";
 import { GroupFilter } from "@/components/group-filter";
 import { Highlight } from "@/components/highlight";
+import { UpcomingBirthdays } from "@/components/upcoming-birthdays";
 import { loadContactsPage } from "@/lib/contacts-page";
 import { contactForms, formatNumber, pluralize } from "@/lib/format";
 import { requireUserId } from "@/lib/session";
 
 export default async function ContactsPage({ searchParams }: PageProps<"/">) {
   const userId = await requireUserId();
-  const { query, page, groups, group, addedId, added, contacts, hasMore, total, scopeCount, listCount, dueContacts } =
-    await loadContactsPage(userId, await searchParams);
+  const {
+    query,
+    page,
+    groups,
+    group,
+    addedId,
+    added,
+    contacts,
+    hasMore,
+    total,
+    scopeCount,
+    listCount,
+    dueContacts,
+    upcomingBirthdays,
+  } = await loadContactsPage(userId, await searchParams);
   const groupId = group?.id ?? null;
 
   return (
@@ -38,6 +52,8 @@ export default async function ContactsPage({ searchParams }: PageProps<"/">) {
       </div>
 
       {total > 0 && <GroupFilter groups={groups} selectedId={groupId} />}
+
+      {!query && <UpcomingBirthdays contacts={upcomingBirthdays} groupId={groupId} page={page} />}
 
       {/* Keyed by the group: the block keeps its own rows (see due-contacts.tsx) and must start over for another group */}
       {!query && <DueContacts key={groupId ?? "all"} contacts={dueContacts} groupId={groupId} page={page} />}
