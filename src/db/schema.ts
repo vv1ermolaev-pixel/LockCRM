@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -133,6 +135,11 @@ export const contacts = pgTable(
     howWeMet: text("how_we_met"),
     phone: text("phone"),
     email: text("email"),
+    // Birth date in three parts, because the year may be unknown. Day and month are set together or not at all,
+    // the year only with them (the checks below). The server checks that the date exists and is not in the future
+    birthDay: smallint("birth_day"),
+    birthMonth: smallint("birth_month"),
+    birthYear: smallint("birth_year"),
     // How often to stay in touch; NULL means "not set"
     contactFrequency: contactFrequencyEnum("contact_frequency"),
     // When the "Contacted" (Связались) button was last pressed. Only the mark and undo actions write it:
@@ -144,7 +151,15 @@ export const contacts = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index("contacts_owner_id_name_idx").on(table.ownerId, table.name)],
+  (table) => [
+    index("contacts_owner_id_name_idx").on(table.ownerId, table.name),
+    check("contacts_birth_day_month_together", sql`(${table.birthDay} is null) = (${table.birthMonth} is null)`),
+    check("contacts_birth_year_needs_day_month", sql`${table.birthYear} is null or ${table.birthDay} is not null`),
+    check(
+      "contacts_birth_day_month_range",
+      sql`(${table.birthDay} is null or ${table.birthDay} between 1 and 31) and (${table.birthMonth} is null or ${table.birthMonth} between 1 and 12)`,
+    ),
+  ],
 );
 
 export const notes = pgTable(

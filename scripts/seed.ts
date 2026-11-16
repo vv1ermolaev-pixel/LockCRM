@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { contactGroups, contacts, groups, notes, users } from "../src/db/schema";
+import { isExistingDate } from "../src/lib/birthdays";
 import { contactFrequencies } from "../src/lib/contact-frequency";
 import { loginEmailSchema } from "../src/lib/validation";
 
@@ -31,6 +32,8 @@ const random = createRandom(20261006);
 const frequencyRandom = createRandom(20261027);
 // Groups have their own generator too, for the same reason
 const groupRandom = createRandom(20261029);
+// And birth dates
+const birthdayRandom = createRandom(20261116);
 const chance = (probability: number) => random() < probability;
 const randomInt = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
 const pick = <T>(items: readonly T[]) => items[Math.floor(random() * items.length)];
@@ -328,6 +331,22 @@ function makeFrequency() {
   return hasFrequency ? contactFrequencies[Math.floor(kind * contactFrequencies.length)] : null;
 }
 
+// About two thirds of the contacts get a birth date, about a third of those without a year; years 1950-2005.
+// Five draws every time, whatever the result, so each contact's date does not depend on the previous ones
+function makeBirthDate() {
+  const hasDate = birthdayRandom() < 2 / 3;
+  const hasYear = birthdayRandom() < 2 / 3;
+  const year = 1950 + Math.floor(birthdayRandom() * (2005 - 1950 + 1));
+  const month = 1 + Math.floor(birthdayRandom() * 12);
+  const dayDraw = birthdayRandom();
+  if (!hasDate) return { birthDay: null, birthMonth: null, birthYear: null };
+  const birthYear = hasYear ? year : null;
+  // The longest month first, then down to the last day the month really has (29 February only in a leap year)
+  let birthDay = 1 + Math.floor(dayDraw * 31);
+  while (!isExistingDate(birthDay, month, birthYear)) birthDay -= 1;
+  return { birthDay, birthMonth: month, birthYear };
+}
+
 // Added after the four default groups, in the colors a new group would get
 const seedGroups = [
   { name: "Теннис", color: "peach" },
@@ -365,6 +384,7 @@ function makeContact(): SeedContact {
       howWeMet: chance(0.85) ? byGender(pick(howWeMetOptions), gender) : null,
       phone: chance(0.9) ? makePhone() : null,
       email: chance(0.75) ? makeEmail(firstName, surname) : null,
+      ...makeBirthDate(),
       contactFrequency: makeFrequency(),
       createdAt,
       updatedAt: contactNotes.at(-1)?.createdAt ?? createdAt,

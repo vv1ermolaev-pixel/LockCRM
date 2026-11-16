@@ -48,9 +48,13 @@ async function dataSnapshot() {
   };
 }
 
-// The contacts table without the owner column that the migration adds
+// Columns that the pending migrations add: the owner of this deploy, and the birth date of a later one
+// (its own test checks that existing contacts get no birth date, see birthdays.test.ts)
+const addedColumns = new Set(["owner_id", "birth_day", "birth_month", "birth_year"]);
+
+// The rows without the columns the migrations add
 function withoutOwner(rows: postgres.RowList<postgres.Row[]>) {
-  return rows.map((row) => Object.fromEntries(Object.entries(row).filter(([column]) => column !== "owner_id")));
+  return rows.map((row) => Object.fromEntries(Object.entries(row).filter(([column]) => !addedColumns.has(column))));
 }
 
 async function columnExists(table: string, column: string) {

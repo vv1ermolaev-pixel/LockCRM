@@ -48,12 +48,12 @@ export async function createContact(formData: FormData): Promise<ContactActionRe
     return { ok: false, errors: toFieldErrors(parsed.error) };
   }
 
-  const { groupIds, newGroups, ...fields } = parsed.data;
+  const { groupIds, newGroups, birthDate, ...fields } = parsed.data;
   // One transaction: if the groups cannot be written, the contact is not saved either
   const created = await db.transaction(async (tx) => {
     const [row] = await tx
       .insert(contacts)
-      .values({ ...fields, ownerId: userId })
+      .values({ ...fields, ...birthDate, ownerId: userId })
       .returning({ id: contacts.id, name: contacts.name });
     await groupStore.setContactGroups(tx, userId, row.id, { groupIds, newNames: newGroups });
     return row;
@@ -71,11 +71,11 @@ export async function updateContact(id: number, formData: FormData): Promise<Con
     return { ok: false, errors: toFieldErrors(parsed.error) };
   }
 
-  const { groupIds, newGroups, ...fields } = parsed.data;
+  const { groupIds, newGroups, birthDate, ...fields } = parsed.data;
   const updated = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(contacts)
-      .set(fields)
+      .set({ ...fields, ...birthDate })
       .where(and(eq(contacts.id, id), ownedBy(userId)))
       .returning({ id: contacts.id, name: contacts.name });
     if (!row) return null;

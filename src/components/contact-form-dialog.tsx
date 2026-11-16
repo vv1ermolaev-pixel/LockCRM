@@ -22,15 +22,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { failureMessage } from "@/lib/action-messages";
+import { noBirthDatePart } from "@/lib/birthdays";
 import { contactFrequencies, contactFrequencyLabels, noContactFrequency } from "@/lib/contact-frequency";
 import { groupColorClasses } from "@/lib/group-colors";
 import type { GroupListItem } from "@/lib/groups";
 import { cn } from "@/lib/utils";
 import { groupNameKey, type ContactField, type ContactFieldErrors } from "@/lib/validation";
 
-type TextField = Exclude<ContactField, "groupIds" | "newGroups">;
+type TextField = Exclude<ContactField, "groupIds" | "newGroups" | "birthDate">;
 
-export type ContactFormValues = Partial<Record<TextField, string | null>> & { groupIds?: number[] };
+export type ContactFormValues = Partial<Record<TextField, string | null>> & {
+  groupIds?: number[];
+  birthDay?: number | null;
+  birthMonth?: number | null;
+  birthYear?: number | null;
+};
 
 type ContactFormDialogProps = {
   trigger: ReactNode;
@@ -149,6 +155,12 @@ export function ContactFormDialog({
               error={errors.email}
             />
           </div>
+          <BirthDateField
+            day={defaultValues.birthDay}
+            month={defaultValues.birthMonth}
+            year={defaultValues.birthYear}
+            error={errors.birthDate}
+          />
           <FrequencyField defaultValue={defaultValues.contactFrequency} error={errors.contactFrequency} />
           <GroupsField
             groups={groups}
@@ -194,6 +206,99 @@ function FrequencyField({ defaultValue, error }: { defaultValue?: string | null;
           ))}
         </SelectContent>
       </Select>
+      {error && (
+        <p id={errorId} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const birthDays = Array.from({ length: 31 }, (_, index) => index + 1);
+// In the genitive, as the date reads: "14 марта"
+const birthMonths = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
+
+// Day and month from lists, the year typed: a browser date picker cannot leave the year empty.
+// One label and one error for the three parts; each part has its own label for screen readers
+function BirthDateField({
+  day,
+  month,
+  year,
+  error,
+}: {
+  day?: number | null;
+  month?: number | null;
+  year?: number | null;
+  error?: string;
+}) {
+  const labelId = "contact-birthDate-label";
+  const errorId = "contact-birthDate-error";
+  const invalid = error ? true : undefined;
+  const describedBy = error ? errorId : undefined;
+
+  return (
+    <div className="grid gap-2">
+      <Label id={labelId} asChild>
+        <p>Дата рождения</p>
+      </Label>
+      <div role="group" aria-labelledby={labelId} className="grid grid-cols-4 gap-2">
+        <Select name="birthDay" defaultValue={day ? String(day) : noBirthDatePart}>
+          <SelectTrigger aria-label="День" aria-invalid={invalid} aria-describedby={describedBy}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={noBirthDatePart}>—</SelectItem>
+            {birthDays.map((value) => (
+              <SelectItem key={value} value={String(value)}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select name="birthMonth" defaultValue={month ? String(month) : noBirthDatePart}>
+          <SelectTrigger
+            aria-label="Месяц"
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            className="col-span-2"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={noBirthDatePart}>—</SelectItem>
+            {birthMonths.map((label, index) => (
+              <SelectItem key={label} value={String(index + 1)}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          name="birthYear"
+          aria-label="Год"
+          placeholder="Год"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={4}
+          defaultValue={year ?? ""}
+          aria-invalid={invalid}
+          aria-describedby={describedBy}
+        />
+      </div>
       {error && (
         <p id={errorId} className="text-sm text-destructive">
           {error}

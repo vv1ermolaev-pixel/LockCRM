@@ -10,10 +10,11 @@ import { Highlight } from "@/components/highlight";
 import { MarkContactedButton } from "@/components/mark-contacted-button";
 import { NoteForm } from "@/components/note-form";
 import { Button } from "@/components/ui/button";
+import { currentAge, moscowToday } from "@/lib/birthdays";
 import { contactFrequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
 import { getContactGroupIds, listGroups } from "@/lib/groups";
-import { formatCalendarDay, formatDateTime, formatOverdue, pluralize } from "@/lib/format";
+import { formatAge, formatBirthDate, formatCalendarDay, formatDateTime, formatOverdue, pluralize } from "@/lib/format";
 import { getKeepInTouchStatus, type KeepInTouchStatus } from "@/lib/keep-in-touch";
 import { homeHref, parsePage } from "@/lib/pagination";
 import { requireUserId } from "@/lib/session";
@@ -70,6 +71,9 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
                 howWeMet: contact.howWeMet,
                 phone: contact.phone,
                 email: contact.email,
+                birthDay: contact.birthDay,
+                birthMonth: contact.birthMonth,
+                birthYear: contact.birthYear,
                 contactFrequency: contact.contactFrequency,
                 groupIds,
               }}
@@ -110,6 +114,11 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
               <a href={`mailto:${contact.email}`} className="break-all hover:underline">
                 {contact.email}
               </a>
+            )}
+          </Detail>
+          <Detail label="Дата рождения" className="sm:col-span-2">
+            {contact.birthDay !== null && contact.birthMonth !== null && (
+              <BirthDate day={contact.birthDay} month={contact.birthMonth} year={contact.birthYear} />
             )}
           </Detail>
           <Detail label="Как часто общаться" className="sm:col-span-2">
@@ -186,6 +195,17 @@ export default async function ContactPage({ params, searchParams }: PageProps<"/
         </div>
       </section>
     </div>
+  );
+}
+
+// "14 марта 1990 · 36 лет"; without a year, or for a person younger than a year, only the date
+function BirthDate({ day, month, year }: { day: number; month: number; year: number | null }) {
+  const age = currentAge({ day, month, year }, moscowToday());
+  return (
+    <span>
+      {formatBirthDate({ day, month, year })}
+      {age !== null && ` · ${formatAge(age)}`}
+    </span>
   );
 }
 
