@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Manual rollback of one environment, run by a human on the server:
+# Manual rollback of one environment. Production: the workflow Deploy prod with "rollback" ticked runs it over SSH.
+# A human can also run it on the server:
 #   bash /srv/lockcrm/deploy/rollback.sh prod              # back to the previous version
 #   bash /srv/lockcrm/deploy/rollback.sh prod <image:tag>  # to a specific image kept on the server
 #   bash /srv/lockcrm-staging/deploy/rollback.sh staging   # the same for staging
@@ -9,6 +10,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 use_env "${1:?usage: rollback.sh <prod|staging> [image:tag]}"
+take_lock
 [ -s "$RELEASES_FILE" ] || fail "$RELEASES_FILE is empty: nothing has been deployed yet."
 CURRENT="$(tail -n 1 "$RELEASES_FILE")"
 TARGET="${2:-$(grep -vxF "$CURRENT" "$RELEASES_FILE" | tail -n 1 || true)}"

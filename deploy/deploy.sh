@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deploys one app version to one environment on the server. Called by GitHub Actions over SSH:
-#   bash /srv/lockcrm/deploy/deploy.sh prod <image:tag> <public-url>
-#   bash /srv/lockcrm-staging/deploy/deploy.sh staging <image:tag> <public-url>
+#   bash /srv/lockcrm/deploy/deploy.sh prod <image:tag> <public-url>          (workflow Deploy prod)
+#   bash /srv/lockcrm-staging/deploy/deploy.sh staging <image:tag> <public-url>  (workflow Deploy staging)
 # stdin: "<registry-user> <registry-token>" to pull the image from GHCR.
 #
-# Steps: pull image -> database backup (prod only) -> migrations (one-off container) -> new app
-# -> smoke /health -> cleanup.
+# Steps: daily backup schedule (prod only) -> pull image -> database backup (prod only) -> migrations
+# (one-off container) -> new app -> smoke /health -> old images cleanup (prod only).
 # Any failure stops the deploy with a non-zero exit code. There is no automatic
 # rollback: a human decides and runs deploy/rollback.sh.
 
@@ -20,13 +20,12 @@ VERSION="$(image_version "$IMAGE")"
 export APP_IMAGE="$IMAGE"
 
 check_env_file
-
-# One deploy per environment at a time: a second one waits here until the first finishes
-exec 9>"$APP_DIR/deploy.lock"
-if ! flock --nonblock 9; then
-  log "Another deploy to $ENV_NAME is running, waiting for it"
-  flock 9
+if [ "$ENV_NAME" = "prod" ]; then
+  # Before anything changes: a server that cannot run the daily backup does not get a new version
+  install_backup_cron
 fi
+
+take_lock
 
 log "Deploying $VERSION to $ENV_NAME"
 # The other environment's cleanup keeps this image while the deploy runs
@@ -34,19 +33,24 @@ DEPLOYING_FILE="$APP_DIR/$DEPLOYING_FILE_NAME"
 echo "$IMAGE" >"$DEPLOYING_FILE"
 trap 'rm -f "$DEPLOYING_FILE"' EXIT
 
-log "Pulling $IMAGE"
 read -r REGISTRY_USER REGISTRY_TOKEN || fail "registry user and token are expected on stdin"
-(
-  # Temporary docker credentials: the token is never stored on the server
-  DOCKER_CONFIG="$(mktemp -d)"
-  export DOCKER_CONFIG
-  trap 'rm -rf "$DOCKER_CONFIG"' EXIT
-  # Docker warns that this temporary config stores the token unencrypted; it is deleted right after
-  if ! output="$(printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin 2>&1)"; then
-    fail "registry login failed: $output"
-  fi
-  docker pull --quiet "$IMAGE"
-)
+if docker image inspect "$IMAGE" >/dev/null 2>&1; then
+  # The tag is a commit SHA, so the image never changes; it may already be gone from GHCR
+  log "Image $IMAGE is already on the server"
+else
+  log "Pulling $IMAGE"
+  (
+    # Temporary docker credentials: the token is never stored on the server
+    DOCKER_CONFIG="$(mktemp -d)"
+    export DOCKER_CONFIG
+    trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+    # Docker warns that this temporary config stores the token unencrypted; it is deleted right after
+    if ! output="$(printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin 2>&1)"; then
+      fail "registry login failed: $output"
+    fi
+    docker pull --quiet "$IMAGE"
+  )
+fi
 unset REGISTRY_TOKEN
 
 log "Starting database"
@@ -79,19 +83,9 @@ smoke "$PUBLIC_URL/health" "$VERSION" || fail "app does not answer on $PUBLIC_UR
 PREVIOUS="$(grep -vxF "$IMAGE" "$RELEASES_FILE" 2>/dev/null | tail -n 1 || true)"
 echo "$IMAGE" >> "$RELEASES_FILE"
 
-log "Cleanup: keeping only the current and the previous app images of every environment"
-KEPT="$(kept_images)"
-REPOSITORY="${IMAGE%:*}"
-docker image ls "$REPOSITORY" --format '{{.Repository}}:{{.Tag}}' | while read -r ref; do
-  if [[ "$ref" != *:"<none>" ]] && ! grep -qxF "$ref" <<<"$KEPT"; then
-    # An image a container still uses is not removed; that does not fail the deploy that already went well
-    if docker image rm "$ref" >/dev/null; then
-      log "Removed old image $ref"
-    else
-      log "Kept image $ref: docker could not remove it"
-    fi
-  fi
-done
-docker image prune --force >/dev/null
+if [ "$ENV_NAME" = "prod" ]; then
+  log "Cleanup: removing app images older than $IMAGE_MAX_AGE_DAYS days, except the current and the previous production version and the current staging version"
+  cleanup_images "${IMAGE%:*}"
+fi
 
 log "Deployed $VERSION to $ENV_NAME (previous: ${PREVIOUS:-none})"
