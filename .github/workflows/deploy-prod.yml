@@ -1,0 +1,156 @@
+name: Deploy prod
+
+# Production deploy, started only by hand: Actions -> Deploy prod -> Run workflow (or `gh workflow run deploy-prod.yml`).
+# - SHA empty: deploys the commit of the newest successful staging deploy (workflow Deploy staging).
+# - SHA given: deploys this commit, but only if staging deployed it successfully.
+# - "rollback" ticked: brings back the production version that ran before the current one (the server remembers it
+#   in releases.log). The SHA field is ignored, staging is not checked.
+# Deploy: the same image and the same deploy/ scripts that staging got -> deploy.sh prod (backup -> migrations ->
+# app -> smoke -> old images off the server) -> old builds out of GHCR. The deployed SHA is in the run summary.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit SHA. Empty: the newest successful staging deploy"
+        required: false
+        default: ""
+      rollback:
+        description: "Rollback to the previous production version (SHA is ignored)"
+        type: boolean
+        default: false
+
+run-name: ${{ inputs.rollback && 'Deploy prod - rollback' || format('Deploy prod {0}', inputs.sha || '- newest from staging') }}
+
+# One production deploy or rollback at a time; a second run waits, a running one is never cancelled midway
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  DEPLOY_PATH: /srv/lockcrm
+  APP_URL: https://app.funkicrm.ru
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # Reads the staging deploy history
+      actions: read
+      # The server pulls the image with this job's short-lived token
+      packages: read
+    steps:
+      # The workflow and the staging check always come from main
+      - name: Only from main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Run Deploy prod on the main branch (now: $GITHUB_REF)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - name: Pick the version that passed staging
+        id: pick
+        if: ${{ !inputs.rollback }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_SHA: ${{ inputs.sha }}
+        run: |
+          sha="$(bash deploy/pick-prod-version.sh "$REQUESTED_SHA")"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # The deploy scripts and compose.yaml of the picked commit: exactly what staging ran with this image
+      - uses: actions/checkout@v7
+        if: ${{ !inputs.rollback }}
+        with:
+          ref: ${{ steps.pick.outputs.sha }}
+
+      - name: Set up SSH
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned server host keys: connect only to our server
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName $DEPLOY_HOST
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Version running now
+        id: before
+        run: |
+          image="$(ssh server "tail -n 1 $DEPLOY_PATH/releases.log 2>/dev/null || true")"
+          echo "sha=${image##*:}" >> "$GITHUB_OUTPUT"
+
+      - name: Copy deploy scripts to the server
+        if: ${{ !inputs.rollback }}
+        run: |
+          tar -czf - deploy | ssh server "set -e; cd $DEPLOY_PATH; rm -rf deploy.new; mkdir deploy.new; tar -xzf - -C deploy.new --strip-components=1; rm -rf deploy; mv deploy.new deploy"
+
+      - name: Deploy
+        if: ${{ !inputs.rollback }}
+        env:
+          SHA: ${{ steps.pick.outputs.sha }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:$SHA"
+          printf '%s %s\n' "$REGISTRY_USER" "$REGISTRY_TOKEN" | ssh server "bash $DEPLOY_PATH/deploy/deploy.sh prod $image $APP_URL"
+
+      # With the scripts already on the server: the ones that deployed the current version
+      - name: Rollback
+        if: ${{ inputs.rollback }}
+        run: ssh server "bash $DEPLOY_PATH/deploy/rollback.sh prod"
+
+      - name: Summary
+        if: ${{ always() && steps.before.outcome == 'success' }}
+        env:
+          ACTION: ${{ inputs.rollback && 'Rollback' || 'Deploy' }}
+          BEFORE: ${{ steps.before.outputs.sha }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          image="$(ssh server "tail -n 1 $DEPLOY_PATH/releases.log 2>/dev/null || true")"
+          {
+            echo "### $ACTION: $OUTCOME"
+            echo
+            echo "| | SHA |"
+            echo "| --- | --- |"
+            echo "| Prod runs now | \`${image##*:}\` |"
+            echo "| Before this run | \`${BEFORE:-none}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Old builds out of GHCR, only after a successful deploy. Needs write access to packages: a job of its own,
+  # so the token that goes to the server in the deploy job can only read
+  cleanup-registry:
+    needs: deploy
+    if: ${{ !inputs.rollback }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep the newest 10 builds in GHCR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash deploy/cleanup-registry.sh

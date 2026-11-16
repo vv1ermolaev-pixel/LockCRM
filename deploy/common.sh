@@ -8,7 +8,11 @@ PROD_DIR="/srv/lockcrm"
 STAGING_DIR="/srv/lockcrm-staging"
 # Production database dumps: personal data, so only the owner can read them. The staging database is loaded from them
 PROD_BACKUP_DIR="$PROD_DIR/backups"
-BACKUP_KEEP=30
+# Every kind of dump is kept apart: the newest 7 of each. The kind is in the file name, see backup_db
+BACKUP_KINDS="deploy daily restore"
+BACKUP_KEEP=7
+# App images older than this are removed from the server, except the ones kept_images lists
+IMAGE_MAX_AGE_DAYS=14
 
 # Picks the environment every other function works with. Every script calls it first:
 #   use_env <prod|staging>
@@ -86,20 +90,60 @@ running_image() {
 # Image a deploy is bringing in right now; written by deploy.sh, removed when it ends
 DEPLOYING_FILE_NAME="deploying.image"
 
-# Images that must stay on the server: the current and the previous version of every environment (a rollback
-# needs them) and the image of a deploy that is still running. The environments share the server's images,
-# so a cleanup must keep the other environment's ones too
+# One deploy, rollback or backup per environment at a time: a second one waits here until the first finishes
+take_lock() {
+  exec 9>"$APP_DIR/deploy.lock"
+  if ! flock --nonblock 9; then
+    log "Another deploy, rollback or backup of $ENV_NAME is running, waiting for it"
+    flock 9
+  fi
+}
+
+# Images that must stay on the server whatever their age: the current and the previous production version
+# (a rollback needs them), the current staging version and the image of a deploy that is still running
 kept_images() {
   local dir
+  if [ -f "$PROD_DIR/releases.log" ]; then
+    # Newest first, each image once, the first two
+    tac "$PROD_DIR/releases.log" | awk 'NF && !seen[$0]++ && ++count <= 2'
+  fi
+  if [ -f "$STAGING_DIR/releases.log" ]; then
+    awk 'NF { last = $0 } END { if (last != "") print last }' "$STAGING_DIR/releases.log"
+  fi
   for dir in "$PROD_DIR" "$STAGING_DIR"; do
-    if [ -f "$dir/releases.log" ]; then
-      # Newest first, each image once, the first two
-      tac "$dir/releases.log" | awk 'NF && !seen[$0]++ && ++count <= 2'
-    fi
     if [ -f "$dir/$DEPLOYING_FILE_NAME" ]; then
       cat "$dir/$DEPLOYING_FILE_NAME"
     fi
   done
+}
+
+# Removes images of the app that are older than $IMAGE_MAX_AGE_DAYS, except the ones kept_images lists.
+# Both environments share the server's images. Run after a successful production deploy:
+#   cleanup_images <image repository>
+cleanup_images() {
+  local repository="$1" kept cutoff ref created
+  kept="$(kept_images)"
+  cutoff="$(date -d "-$IMAGE_MAX_AGE_DAYS days" +%s)"
+  while read -r ref; do
+    if [[ "$ref" == *:"<none>" ]] || grep -qxF "$ref" <<<"$kept"; then
+      continue
+    fi
+    # Build time of the image: it is built when its commit lands in main
+    if ! created="$(date -d "$(docker image inspect --format '{{.Created}}' "$ref")" +%s)"; then
+      log "Kept image $ref: could not read its build time"
+      continue
+    fi
+    if [ "$created" -ge "$cutoff" ]; then
+      continue
+    fi
+    # An image a container still uses is not removed; that does not fail the deploy that already went well
+    if docker image rm "$ref" >/dev/null; then
+      log "Removed old image $ref"
+    else
+      log "Kept image $ref: docker could not remove it"
+    fi
+  done < <(docker image ls "$repository" --format '{{.Repository}}:{{.Tag}}')
+  docker image prune --force >/dev/null
 }
 
 # Dumps the environment's database into $BACKUP_DIR and sets BACKUP_FILE to the new dump.
@@ -122,11 +166,38 @@ backup_db() {
   log "Backup saved: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
 }
 
-# Keeps only the newest $BACKUP_KEEP dumps; file names start with the date, so name order is time order
+# Keeps only the newest $BACKUP_KEEP dumps of every kind; file names start with the date, so name order is time order
 prune_backups() {
-  local old
-  find "$BACKUP_DIR" -maxdepth 1 -name '*.dump' -printf '%f\n' | sort | head -n "-$BACKUP_KEEP" |
-    while read -r old; do
-      rm -f "$BACKUP_DIR/$old" && log "Removed old backup $old"
-    done
+  local kind old
+  for kind in $BACKUP_KINDS; do
+    find "$BACKUP_DIR" -maxdepth 1 -name "*_${kind}_*.dump" -printf '%f\n' | sort | head -n "-$BACKUP_KEEP" |
+      while read -r old; do
+        rm -f "$BACKUP_DIR/$old" && log "Removed old backup $old"
+      done
+  done
+}
+
+# Marks the crontab line of the daily production backup: only this line is replaced, other lines stay as they are
+BACKUP_CRON_MARK="# LockCRM: daily production database backup, installed by deploy/deploy.sh"
+
+# Adds the daily production backup at 03:00 Moscow time to the crontab of the deploy user, or updates it.
+# Fails without changing anything if the server has no cron
+install_backup_cron() {
+  local when line current new
+  command -v crontab >/dev/null || fail "crontab not found: install cron on the server (sudo apt install cron)"
+  # 03:00 Moscow time (always UTC+3: Moscow has no daylight saving time) as the server's local time, which cron uses
+  when="$(date -d '03:00 +0300' '+%-M %-H')"
+  line="$when * * * bash $PROD_DIR/deploy/backup.sh prod >>$PROD_DIR/backup.log 2>&1"
+  current="$(crontab -l 2>/dev/null || true)"
+  new="$(
+    if [ -n "$current" ]; then
+      grep -vF -e "$BACKUP_CRON_MARK" -e "$PROD_DIR/deploy/backup.sh" <<<"$current" || true
+    fi
+    printf '%s\n%s\n' "$BACKUP_CRON_MARK" "$line"
+  )"
+  if [ "$new" = "$current" ]; then
+    return 0
+  fi
+  printf '%s\n' "$new" | crontab - || fail "could not update the crontab"
+  log "Daily backup scheduled: $line"
 }

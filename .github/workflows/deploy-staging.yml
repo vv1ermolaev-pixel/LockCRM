@@ -1,7 +1,9 @@
-name: Deploy
+name: Deploy staging
 
-# Every push to main: build the image -> push to GHCR -> deploy the same image to staging and to prod.
-# The two deploys are independent: a failed staging deploy does not stop prod, and the other way round.
+# Every push to main: build the image -> push to GHCR -> deploy it to staging.
+# Production is deployed only by hand, by the workflow Deploy prod, and only a commit whose run here is green.
+# So the successful runs of this workflow are the staging deploy history: deploy/pick-prod-version.sh looks them up
+# by this file name, keep it.
 # The server side lives in deploy/: this workflow only copies it and calls deploy.sh.
 on:
   push:
@@ -43,32 +45,21 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: deploy (${{ matrix.environment }})
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - environment: prod
-            path: /srv/lockcrm
-            url: https://app.funkicrm.ru
-          - environment: staging
-            path: /srv/lockcrm-staging
-            url: https://test-app.funkicrm.ru
-    # One deploy per environment at a time: a newer push waits until the running deploy finishes
+    # One staging deploy at a time: a newer push waits until the running deploy finishes
     concurrency:
-      group: deploy-${{ matrix.environment }}
+      group: deploy-staging
       cancel-in-progress: false
     permissions:
       contents: read
       # The server pulls the image with this job's short-lived token
       packages: read
     env:
-      DEPLOY_ENV: ${{ matrix.environment }}
-      DEPLOY_PATH: ${{ matrix.path }}
-      APP_URL: ${{ matrix.url }}
+      DEPLOY_ENV: staging
+      DEPLOY_PATH: /srv/lockcrm-staging
+      APP_URL: https://test-app.funkicrm.ru
     steps:
       - uses: actions/checkout@v7
 
@@ -93,7 +84,7 @@ jobs:
             StrictHostKeyChecking yes
           EOF
 
-      # Every environment has its own copy of deploy/: two deploys at once do not replace each other's files
+      # Every environment has its own copy of deploy/: a staging deploy does not replace the production scripts
       - name: Copy deploy scripts to the server
         run: |
           tar -czf - deploy | ssh server "set -e; cd $DEPLOY_PATH; rm -rf deploy.new; mkdir deploy.new; tar -xzf - -C deploy.new --strip-components=1; rm -rf deploy; mv deploy.new deploy"
