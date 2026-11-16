@@ -26,6 +26,10 @@ services:
   mailpit:
     image: axllent/mailpit:v1.33.0
     restart: unless-stopped
+    environment:
+      # No reverse DNS lookup of the sender before the greeting: when DNS inside Docker does not answer
+      # (e.g. under a VPN), every email waits ~8 s for it and the tests that send emails time out
+      MP_SMTP_DISABLE_RDNS: "true"
     ports:
       # Bound to localhost only, like the database
       - "127.0.0.1:1025:1025"
