@@ -9,6 +9,7 @@
 #   5. Asks for the staging login and password (once: kept hashed for nginx).
 #   6. Adds the nginx site test-app.funkicrm.ru (own file), gets its certificate,
 #      points it to the staging app on 127.0.0.1:3001 behind the password.
+#   7. Lets the deploy user read the server journal, where the app containers write their logs.
 
 set -euo pipefail
 
@@ -29,13 +30,13 @@ CERTBOT_WEBROOT="/var/www/certbot"
 
 [ "$(id -u)" -eq 0 ] || { echo "Run with sudo: sudo bash $0" >&2; exit 1; }
 
-echo "1/6 docker access for $DEPLOY_USER"
+echo "1/7 docker access for $DEPLOY_USER"
 usermod --append --groups docker "$DEPLOY_USER"
 
-echo "2/6 app folder $APP_DIR"
+echo "2/7 app folder $APP_DIR"
 install -d -m 750 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$APP_DIR"
 
-echo "3/6 nginx: app.funkicrm.ru -> $PROXY_TARGET"
+echo "3/7 nginx: app.funkicrm.ru -> $PROXY_TARGET"
 if grep -qF "proxy_pass $PROXY_TARGET;" "$NGINX_SITE"; then
   echo "    already configured, skipped"
 else
@@ -65,10 +66,10 @@ else
   echo "    done, previous config saved to $backup"
 fi
 
-echo "4/6 staging folder $STAGING_DIR"
+echo "4/7 staging folder $STAGING_DIR"
 install -d -m 750 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$STAGING_DIR"
 
-echo "5/6 staging login and password: $STAGING_HTPASSWD"
+echo "5/7 staging login and password: $STAGING_HTPASSWD"
 if [ -s "$STAGING_HTPASSWD" ]; then
   echo "    already set, skipped (to change it: sudo rm $STAGING_HTPASSWD and run this script again)"
 else
@@ -160,7 +161,7 @@ apply_staging_site() {
   echo "    nginx site saved and reloaded"
 }
 
-echo "6/6 nginx and certificate: $STAGING_DOMAIN -> $STAGING_PROXY_TARGET"
+echo "6/7 nginx and certificate: $STAGING_DOMAIN -> $STAGING_PROXY_TARGET"
 if [ ! -f "$STAGING_CERT_DIR/fullchain.pem" ]; then
   # Without a certificate nginx cannot serve HTTPS yet: first only HTTP, for the Let's Encrypt check
   apply_staging_site "$(staging_http_block)"
@@ -168,5 +169,9 @@ if [ ! -f "$STAGING_CERT_DIR/fullchain.pem" ]; then
     --domain "$STAGING_DOMAIN" --cert-name "$STAGING_DOMAIN" --non-interactive
 fi
 apply_staging_site "$(staging_http_block)$(staging_https_block)"
+
+echo "7/7 journal access for $DEPLOY_USER (container logs, see deploy/compose.yaml)"
+# Takes effect from the next login of the user
+usermod --append --groups systemd-journal "$DEPLOY_USER"
 
 echo "Server is ready for deploys."

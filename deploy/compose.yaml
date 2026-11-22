@@ -2,12 +2,16 @@
 # Used only through the scripts in deploy/ (deploy.sh, rollback.sh, restore.sh, seed.sh): they pick the environment,
 # set APP_IMAGE and APP_PORT and read secrets from the environment's .env (mode 600), see deploy/common.sh.
 
-# Container logs are capped: at most 3 files of 10 MB per container
+# Container logs go to the server journal (journald), not to files of the container: they outlive the container,
+# so a deploy, a rollback or a restore keeps the old lines. The journal size is capped by journald itself
+# (by default 10% of the disk), the oldest lines go first. How to read them: README.md, "Логи".
+# Every line carries the compose project and service as journal fields COM_DOCKER_COMPOSE_PROJECT and
+# COM_DOCKER_COMPOSE_SERVICE (prod/staging, db/app/migrate) and the container name as its identifier
 x-logging: &logging
-  driver: json-file
+  driver: journald
   options:
-    max-size: "10m"
-    max-file: "3"
+    tag: "{{.Name}}"
+    labels: "com.docker.compose.project,com.docker.compose.service"
 
 services:
   db:
