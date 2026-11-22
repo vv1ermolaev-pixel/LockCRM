@@ -8,6 +8,9 @@
 # Personal Claude Code settings
 .claude/settings.local.json
 
+# prod-check reports: a list of the project's weak spots, must not get into the public repo
+/prod-check/
+
 # Dependencies
 /node_modules
 
