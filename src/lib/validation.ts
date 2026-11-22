@@ -4,6 +4,10 @@ import { isExistingDate, moscowToday, noBirthDatePart } from "@/lib/birthdays";
 import { contactFrequencies, noContactFrequency } from "@/lib/contact-frequency";
 import { normalizeText } from "@/lib/search";
 
+// Zod probes `new Function` to speed up parsing. The browser blocks it by our CSP (no 'unsafe-eval') and reports
+// a CSP error in the console on every page. Without the probe parsing is the same, only a bit slower
+z.config({ jitless: true });
+
 // Empty optional fields are stored as NULL
 const optionalText = (max: number, tooLongMessage: string) =>
   z
