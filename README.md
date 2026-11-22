@@ -332,9 +332,32 @@ bash /srv/lockcrm/deploy/restore.sh prod /srv/lockcrm/backups/<имя файла
 
 ### Команды на сервере
 
-Посмотреть контейнеры и их память: `docker stats --no-stream`. Логи приложения: `docker logs prod-app-1` или `docker logs staging-app-1`.
+Посмотреть контейнеры и их память: `docker stats --no-stream`.
 
 Тестовые данные (работает только с пустой базой, ничего не удаляет): `bash /srv/lockcrm/deploy/seed.sh prod`.
+
+### Логи
+
+Все контейнеры (приложение, база, миграции) пишут логи в журнал сервера (journald). Логи не пропадают, когда контейнер пересоздаётся при выкатке, откате или восстановлении базы. Журнал хранится на диске и переживает перезагрузку сервера. Его размер ограничивает сама система (по умолчанию не больше 10% диска): когда место кончается, самые старые строки удаляются.
+
+Читать на сервере (`ssh crm`), подставив `prod` или `staging`:
+
+| Что | Команда |
+| --- | --- |
+| Последние 200 строк приложения | `journalctl COM_DOCKER_COMPOSE_PROJECT=prod COM_DOCKER_COMPOSE_SERVICE=app -n 200` |
+| Следить в реальном времени (выход — Ctrl+C) | `journalctl COM_DOCKER_COMPOSE_PROJECT=prod COM_DOCKER_COMPOSE_SERVICE=app -f` |
+| За последний час | `journalctl COM_DOCKER_COMPOSE_PROJECT=prod COM_DOCKER_COMPOSE_SERVICE=app --since "1 hour ago"` |
+| За период | `journalctl COM_DOCKER_COMPOSE_PROJECT=prod COM_DOCKER_COMPOSE_SERVICE=app --since "2026-11-22 10:00" --until "2026-11-22 12:00"` |
+| База | то же, но `COM_DOCKER_COMPOSE_SERVICE=db` |
+| Миграции при выкатках | то же, но `COM_DOCKER_COMPOSE_SERVICE=migrate` |
+| Всё окружение сразу | `journalctl COM_DOCKER_COMPOSE_PROJECT=prod -n 200` |
+| Сколько места занимает журнал | `journalctl --disk-usage` |
+
+Время в журнале — время сервера. В начале строки — имя контейнера, например `prod-app-1`. Без `-n`, `-f` или `--since` журнал открывается постранично с самого начала: листать — пробел, выйти — `q`.
+
+Читать журнал может пользователь `crmapp`: доступ даёт `setup-server.sh` (шаг 7). Если `journalctl` пишет «You are currently not seeing messages from other users and the system» и логов приложения нет, значит, доступа нет: запустите `setup-server.sh` (см. «Первая настройка сервера») и зайдите по ssh заново.
+
+Строки, написанные до перехода на журнал сервера (ноябрь 2026), в журнал не попали: они пропали вместе со старыми контейнерами.
 
 ### Тест-стенд
 
@@ -358,7 +381,7 @@ bash /srv/lockcrm-staging/deploy/restore.sh staging
 
 ### Первая настройка сервера (уже сделана, нужна только для нового сервера)
 
-1. `deploy/setup-server.sh` с sudo: скопировать на сервер (`scp deploy/setup-server.sh crm:~/`) и запустить `ssh -t crm "sudo bash ~/setup-server.sh"`. Скрипт даёт пользователю `crmapp` доступ к Docker, создаёт `/srv/lockcrm` и `/srv/lockcrm-staging`, направляет nginx для `app.funkicrm.ru` в прод, спрашивает логин и пароль тест-стенда, выпускает сертификат для `test-app.funkicrm.ru` и направляет его в стенд. Повторный запуск безопасен: уже сделанное пропускает. Настройки лендинга и чужие файлы nginx не трогает.
+1. `deploy/setup-server.sh` с sudo: скопировать на сервер (`scp deploy/setup-server.sh crm:~/`) и запустить `ssh -t crm "sudo bash ~/setup-server.sh"`. Скрипт даёт пользователю `crmapp` доступ к Docker, создаёт `/srv/lockcrm` и `/srv/lockcrm-staging`, направляет nginx для `app.funkicrm.ru` в прод, спрашивает логин и пароль тест-стенда, выпускает сертификат для `test-app.funkicrm.ru` и направляет его в стенд, даёт `crmapp` право читать журнал сервера (там логи контейнеров). Повторный запуск безопасен: уже сделанное пропускает. Настройки лендинга и чужие файлы nginx не трогает.
 2. Создать `/srv/lockcrm/.env` с правами 600:
    - база: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL=postgresql://USER:PASSWORD@db:5432/DB`;
    - вход: `BETTER_AUTH_SECRET` (сгенерировать на сервере: `openssl rand -base64 32`), `BETTER_AUTH_URL=https://app.funkicrm.ru`;
