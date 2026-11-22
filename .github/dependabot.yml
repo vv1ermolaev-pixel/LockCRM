@@ -1,0 +1,36 @@
+# Dependabot: weekly version update PRs. Security fix PRs come right away and ignore the schedule and cooldown.
+# Every PR goes through the regular CI; merging into main deploys to staging as usual.
+version: 2
+
+updates:
+  - package-ecosystem: npm # pnpm projects use the npm ecosystem
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    # A brand-new release waits a week before a PR: compromised versions are usually caught by then
+    cooldown:
+      default-days: 7
+    groups:
+      # Minor and patch updates in two PRs; each major update gets its own PR
+      app:
+        dependency-type: production
+        update-types: [minor, patch]
+      dev-tools:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

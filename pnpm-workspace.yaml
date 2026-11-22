@@ -2,3 +2,11 @@ allowBuilds:
   esbuild: true
   sharp: false
   unrs-resolver: false
+
+# Security fixes for nested packages whose parents still pin a vulnerable version.
+# Remove an entry once `pnpm audit` stays clean without it.
+overrides:
+  # drizzle-kit -> @esbuild-kit/core-utils pins esbuild ~0.18 (GHSA-67mh-4wv8-2f99)
+  "@esbuild-kit/core-utils>esbuild": ^0.25.0
+  # shadcn -> ts-morph -> @ts-morph/common pins minimatch ^10 (GHSA-g3hv-75wg-m249)
+  "@ts-morph/common>minimatch": ^11.0.1
